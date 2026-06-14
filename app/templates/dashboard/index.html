@@ -37,10 +37,15 @@
 </div>
 
 <div class="card shadow">
-    <div class="card-header bg-white">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
             <i class="bi bi-calendar-month text-primary me-2"></i>{{ t('birthday_celebrants', lang) }}
         </h5>
+        {% if selected_month and clients %}
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#greetingModal">
+            <i class="bi bi-envelope me-2"></i>{{ t('send_greetings', lang) }}
+        </button>
+        {% endif %}
     </div>
     <div class="card-body">
         <form method="GET" class="mb-4">
@@ -121,4 +126,89 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Greeting Modal -->
+<div class="modal fade" id="greetingModal" tabindex="-1" aria-labelledby="greetingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="greetingModalLabel">
+                    <i class="bi bi-envelope me-2"></i>{{ t('send_greetings', lang) }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>{{ t('placeholders_info', lang) }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="greetingSubject" class="form-label">{{ t('subject', lang) }}</label>
+                    <input type="text" class="form-control" id="greetingSubject" 
+                           value="{{ t('greeting_subject', lang).replace('{name}', '[Name]') }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="greetingMessage" class="form-label">{{ t('message', lang) }}</label>
+                    <textarea class="form-control" id="greetingMessage" rows="10">{{ t('greeting_message', lang).replace('{name}', '[Name]') }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ t('recipients', lang) }} ({{ clients|length }})</label>
+                    <div class="border rounded p-2 bg-light" style="max-height: 150px; overflow-y: auto;">
+                        {% for client in clients %}
+                        {% if client.email %}
+                        <span class="badge bg-primary me-1 mb-1">{{ client.first_name }} {{ client.last_name }} ({{ client.email }})</span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>{{ t('cancel', lang) }}
+                </button>
+                <button type="button" class="btn btn-success" id="sendGreetingsBtn" onclick="sendGreetings()">
+                    <i class="bi bi-send me-2"></i>{{ t('send_to_all', lang) }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendGreetings() {
+    const btn = document.getElementById('sendGreetingsBtn');
+    const subject = document.getElementById('greetingSubject').value;
+    const message = document.getElementById('greetingMessage').value;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ t("sending", lang) }}';
+    
+    fetch('{{ url_for("dashboard.send_greetings") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({subject: subject, message: message})
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-2"></i>{{ t("send_to_all", lang) }}';
+        
+        if (data.success) {
+            alert(data.message);
+            bootstrap.Modal.getInstance(document.getElementById('greetingModal')).hide();
+        } else {
+            alert(data.message + (data.errors ? '\n' + data.errors.join('\n') : ''));
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-2"></i>{{ t("send_to_all", lang) }}';
+        alert('{{ t("greeting_error", lang) }}');
+    });
+}
+</script>
 {% endblock %}

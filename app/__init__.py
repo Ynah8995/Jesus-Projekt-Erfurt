@@ -6,6 +6,7 @@ from .models import db, User
 from .routes.auth import auth_bp, init_login_manager
 from .routes.dashboard import dashboard_bp
 from .routes.clients import clients_bp
+from .routes.settings import settings_bp
 from .translations import t
 
 
@@ -21,6 +22,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(clients_bp)
+    app.register_blueprint(settings_bp)
 
     @app.route('/')
     def index():

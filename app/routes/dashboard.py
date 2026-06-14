@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, jsonify
 from flask_login import login_required, current_user
-from ..models import db, Client
+from ..models import db, Client, Settings
 from ..translations import t
 import smtplib
 from email.mime.text import MIMEText
@@ -74,8 +74,16 @@ def send_greetings():
     if not clients:
         return jsonify({'success': False, 'message': t('no_email_clients', lang)}), 400
     
-    if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+    mail_username = Settings.get('mail_username')
+    mail_password = Settings.get('mail_password')
+    
+    if not mail_username or not mail_password:
         return jsonify({'success': False, 'message': t('mail_not_configured', lang)}), 400
+    
+    mail_server = Settings.get('mail_server', 'smtp.gmail.com')
+    mail_port = int(Settings.get('mail_port', '587'))
+    mail_use_tls = Settings.get('mail_use_tls', 'true') == 'true'
+    mail_default_sender = Settings.get('mail_default_sender', mail_username)
     
     data = request.get_json()
     subject_template = data.get('subject', t('greeting_subject', lang))
@@ -96,16 +104,16 @@ def send_greetings():
             message = message.replace('{last_name}', client.last_name)
             
             msg = MIMEMultipart()
-            msg['From'] = current_app.config['MAIL_DEFAULT_SENDER']
+            msg['From'] = mail_default_sender
             msg['To'] = client.email
             msg['Subject'] = subject
             
             msg.attach(MIMEText(message, 'plain'))
             
-            with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as server:
-                if current_app.config['MAIL_USE_TLS']:
+            with smtplib.SMTP(mail_server, mail_port) as server:
+                if mail_use_tls:
                     server.starttls()
-                server.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
+                server.login(mail_username, mail_password)
                 server.send_message(msg)
             
             sent_count += 1

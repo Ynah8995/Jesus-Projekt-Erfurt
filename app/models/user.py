@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(80), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     language = db.Column(db.String(2), default='en')
+    profile_picture = db.Column(db.String(256), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
@@ -29,6 +30,16 @@ class User(UserMixin, db.Model):
 
     def has_role(self, *roles):
         return self.role in roles
+
+    @property
+    def full_name(self):
+        return f"{self.first_name or ''} {self.last_name or ''}".strip() or self.username
+
+    @property
+    def profile_picture_url(self):
+        if self.profile_picture:
+            return f'/static/uploads/{self.profile_picture}'
+        return None
 
     def __repr__(self):
         return f'<User {self.username}>'

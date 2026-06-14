@@ -7,6 +7,7 @@ from .routes.auth import auth_bp, init_login_manager
 from .routes.dashboard import dashboard_bp
 from .routes.clients import clients_bp
 from .routes.settings import settings_bp
+from .routes.users import users_bp
 from .translations import t
 
 
@@ -16,6 +17,8 @@ def create_app(config_class=Config):
                 static_folder='static')
     app.config.from_object(config_class)
 
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
     db.init_app(app)
     init_login_manager(app)
 
@@ -23,6 +26,7 @@ def create_app(config_class=Config):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(clients_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(users_bp)
 
     @app.route('/')
     def index():

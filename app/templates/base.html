@@ -48,6 +48,15 @@
                     {% endif %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-globe me-1"></i>{{ t('language', lang) }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item {% if lang == 'en' %}active{% endif %}" href="{{ url_for('auth.change_language', lang='en') }}">English</a></li>
+                            <li><a class="dropdown-item {% if lang == 'de' %}active{% endif %}" href="{{ url_for('auth.change_language', lang='de') }}">Deutsch</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             {% if current_user.profile_picture %}
                             <img src="{{ current_user.profile_picture_url }}" alt="{{ current_user.username }}" 
                                  class="rounded-circle me-1" style="width: 24px; height: 24px; object-fit: cover;">

@@ -78,6 +78,7 @@ translations = {
         'subject': 'Subject',
         'message': 'Message',
         'placeholders_info': 'Use {name} for client name, {first_name} for first name, {last_name} for last name',
+        'mail_not_configured': 'Email is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD environment variables.',
     },
     'de': {
         'app_name': 'Jesus Projekt Erfurt',
@@ -158,6 +159,7 @@ translations = {
         'subject': 'Betreff',
         'message': 'Nachricht',
         'placeholders_info': 'Verwenden Sie {name} fuer den vollstaendigen Namen, {first_name} fuer den Vornamen, {last_name} fuer den Nachnamen',
+        'mail_not_configured': 'E-Mail ist nicht konfiguriert. Bitte setzen Sie die Umgebungsvariablen MAIL_USERNAME und MAIL_PASSWORD.',
     }
 }
 

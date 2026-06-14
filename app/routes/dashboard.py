@@ -74,16 +74,12 @@ def send_greetings():
     if not clients:
         return jsonify({'success': False, 'message': t('no_email_clients', lang)}), 400
     
+    if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+        return jsonify({'success': False, 'message': t('mail_not_configured', lang)}), 400
+    
     data = request.get_json()
     subject_template = data.get('subject', t('greeting_subject', lang))
     message_template = data.get('message', t('greeting_message', lang))
-    
-    month_names = {
-        1: t('january', lang), 2: t('february', lang), 3: t('march', lang),
-        4: t('april', lang), 5: t('may', lang), 6: t('june', lang),
-        7: t('july', lang), 8: t('august', lang), 9: t('september', lang),
-        10: t('october', lang), 11: t('november', lang), 12: t('december', lang)
-    }
     
     sent_count = 0
     errors = []
@@ -109,8 +105,7 @@ def send_greetings():
             with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as server:
                 if current_app.config['MAIL_USE_TLS']:
                     server.starttls()
-                if current_app.config['MAIL_USERNAME'] and current_app.config['MAIL_PASSWORD']:
-                    server.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
+                server.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
                 server.send_message(msg)
             
             sent_count += 1

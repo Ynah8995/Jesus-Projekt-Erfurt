@@ -11,7 +11,7 @@ class Config:
     
     # Upload settings
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
-    MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB max
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     
     # Email settings

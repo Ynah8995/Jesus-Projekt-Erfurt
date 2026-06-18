@@ -10,7 +10,7 @@ class Config:
     BABEL_DEFAULT_LOCALE = 'en'
     
     # Upload settings
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+    UPLOAD_FOLDER = os.environ.get('UPLOADS_DIR') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     

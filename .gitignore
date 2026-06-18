@@ -53,3 +53,5 @@ static/uploads/
 desktop_app/build/
 desktop_app/dist/
 desktop_app/*.spec
+
+desktop_app/app_web/

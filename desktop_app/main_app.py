@@ -1,47 +1,394 @@
 """
-Main desktop application - Login, Dashboard, Clients, Users, Settings
+Jesus Projekt Erfurt - Birthday Monitoring Desktop Application
+Matches the web version (run.bat) design exactly.
 """
 import os
+import sys
+import traceback
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
-from datetime import datetime, date
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
+from datetime import datetime, date
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import shutil
 import uuid
+import csv
 
 from models import User, Client, Settings, init_db
 
-# Color scheme
+# Color scheme - matches web version CSS
 PRIMARY = '#ff8e00'
 PRIMARY_DARK = '#e67e00'
+PRIMARY_HOVER = '#cc7a00'
 SECONDARY = '#2ea3f2'
 BG = '#f7f7f7'
+BG_LIGHT = '#fafafa'
 TEXT = '#666666'
+TEXT_DARK = '#333333'
 WHITE = '#ffffff'
 DARK = '#222222'
+SUCCESS = '#28a745'
+DANGER = '#dc3545'
+WARNING = '#ffc107'
+INFO = '#17a2b8'
 
+# Get the directory where the exe is located
+if getattr(sys, 'frozen', False):
+    APP_DIR = os.path.dirname(sys.executable)
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Database locations
+EXE_DB_PATH = os.path.join(APP_DIR, 'birthday_monitoring.db')
+APPDATA_DIR = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Jesus Projekt Erfurt')
+APPDATA_DB_PATH = os.path.join(APPDATA_DIR, 'birthday_monitoring.db')
+
+UPLOADS_DIR = os.path.join(APP_DIR, 'uploads')
+APPDATA_UPLOADS = os.path.join(APPDATA_DIR, 'uploads')
+
+# Logo URLs (same as web version)
+LOGO_URL = 'https://jesus-projekt-erfurt.de/wp-content/uploads/2017/03/Jesus-Projekt-Erfurt-Logo.jpg'
+LOCAL_LOGO = os.path.join(APP_DIR, 'logo.jpg')
+
+
+# ==================== TRANSLATIONS (same as web version) ====================
+
+TRANSLATIONS = {
+    'en': {
+        'app_name': 'Jesus Projekt Erfurt',
+        'app_subtitle': 'Birthday Monitoring',
+        'login': 'Login',
+        'logout': 'Logout',
+        'username': 'Username',
+        'password': 'Password',
+        'login_error': 'Invalid username or password.',
+        'account_deactivated': 'Account is deactivated.',
+        'dashboard': 'Dashboard',
+        'clients': 'Clients',
+        'add_client': 'Add Client',
+        'edit_client': 'Edit Client',
+        'delete_client': 'Delete Client',
+        'select_month': 'Select Month',
+        'all_months': 'All Months',
+        'birthday_celebrants': 'Birthday Celebrants',
+        'no_celebrants': 'No birthday celebrants found for this month.',
+        'first_name': 'First Name',
+        'last_name': 'Last Name',
+        'address': 'Address',
+        'phone': 'Phone',
+        'email': 'Email',
+        'birthday': 'Birthday',
+        'age': 'Age',
+        'privacy_signed': 'Privacy Signed',
+        'photo_permission': 'Photo Permission',
+        'yes': 'Yes',
+        'no': 'No',
+        'save': 'Save',
+        'cancel': 'Cancel',
+        'actions': 'Actions',
+        'edit': 'Edit',
+        'delete': 'Delete',
+        'confirm_delete': 'Confirm Deletion',
+        'admin_password': 'Admin Password',
+        'back': 'Back',
+        'total_clients': 'Total Clients',
+        'month_celebrants': 'Month Celebrants',
+        'welcome': 'Welcome',
+        'language': 'Language',
+        'home': 'Home',
+        'january': 'January', 'february': 'February', 'march': 'March', 'april': 'April',
+        'may': 'May', 'june': 'June', 'july': 'July', 'august': 'August',
+        'september': 'September', 'october': 'October', 'november': 'November', 'december': 'December',
+        'client_added': 'Client added successfully.',
+        'client_updated': 'Client updated successfully.',
+        'client_deleted': 'Client deleted successfully.',
+        'incorrect_password': 'Incorrect admin password.',
+        'required_field': 'This field is required.',
+        'send_greetings': 'Send Birthday Greetings',
+        'greeting_subject': 'Happy Birthday, {name}!',
+        'greeting_message': 'Dear {name},\n\nWishing you a wonderful birthday! May this special day bring you joy, happiness, and all the things you love.\n\nFrom all of us at Jesus Projekt Erfurt, we wish you a fantastic year ahead!\n\nWith warm regards,\nJesus Projekt Erfurt Team',
+        'send_to_all': 'Send to All',
+        'sending': 'Sending...',
+        'greetings_sent': 'Birthday greetings sent successfully!',
+        'greeting_error': 'Error sending greetings. Please try again.',
+        'no_email_clients': 'No clients with email addresses found.',
+        'recipients': 'Recipients',
+        'subject': 'Subject',
+        'message': 'Message',
+        'mail_not_configured': 'Email is not configured. Please go to Settings to configure email.',
+        'user_management': 'User Management',
+        'add_user': 'Add User',
+        'edit_user': 'Edit User',
+        'users': 'Users',
+        'role': 'Role',
+        'admin': 'Admin',
+        'staff': 'Staff',
+        'status': 'Status',
+        'active': 'Active',
+        'inactive': 'Inactive',
+        'last_login': 'Last Login',
+        'profile': 'Profile',
+        'profile_picture': 'Profile Picture',
+        'new_password': 'New Password',
+        'leave_blank_no_change': 'Leave blank to keep current password',
+        'admin_actions': 'Admin Actions',
+        'reset_password': 'Reset Password',
+        'confirm_reset_password': 'Are you sure you want to reset this user\'s password?',
+        'confirm_delete_user': 'Are you sure you want to delete this user?',
+        'cannot_delete_self': 'You cannot delete your own account.',
+        'user_added': 'User added successfully.',
+        'user_updated': 'User updated successfully.',
+        'user_deleted': 'User deleted successfully.',
+        'user_not_found': 'User not found.',
+        'username_exists': 'Username already exists.',
+        'email_exists': 'Email already exists.',
+        'edit_profile': 'Edit Profile',
+        'settings': 'Settings',
+        'email_settings': 'Email Settings',
+        'smtp_server': 'SMTP Server',
+        'smtp_port': 'SMTP Port',
+        'use_tls': 'Use TLS',
+        'email_address': 'Email Address',
+        'app_password': 'App Password',
+        'sender_address': 'Sender Address',
+        'settings_saved': 'Settings saved successfully.',
+    },
+    'de': {
+        'app_name': 'Jesus Projekt Erfurt',
+        'app_subtitle': 'Geburtstagsmonitoring',
+        'login': 'Anmelden',
+        'logout': 'Abmelden',
+        'username': 'Benutzername',
+        'password': 'Passwort',
+        'login_error': 'Ungültiger Benutzername oder Passwort.',
+        'account_deactivated': 'Konto ist deaktiviert.',
+        'dashboard': 'Dashboard',
+        'clients': 'Kunden',
+        'add_client': 'Kunde hinzufügen',
+        'edit_client': 'Kunde bearbeiten',
+        'delete_client': 'Kunde löschen',
+        'select_month': 'Monat wählen',
+        'all_months': 'Alle Monate',
+        'birthday_celebrants': 'Geburtstagsfeiernde',
+        'no_celebrants': 'Keine Geburtstagskinder für diesen Monat gefunden.',
+        'first_name': 'Vorname',
+        'last_name': 'Nachname',
+        'address': 'Adresse',
+        'phone': 'Telefon',
+        'email': 'E-Mail',
+        'birthday': 'Geburtstag',
+        'age': 'Alter',
+        'privacy_signed': 'Datenschutz',
+        'photo_permission': 'Fotoerlaubnis',
+        'yes': 'Ja',
+        'no': 'Nein',
+        'save': 'Speichern',
+        'cancel': 'Abbrechen',
+        'actions': 'Aktionen',
+        'edit': 'Bearbeiten',
+        'delete': 'Löschen',
+        'confirm_delete': 'Löschen bestätigen',
+        'admin_password': 'Admin-Passwort',
+        'back': 'Zurück',
+        'total_clients': 'Kunden gesamt',
+        'month_celebrants': 'Monats-Geburtstagskinder',
+        'welcome': 'Willkommen',
+        'language': 'Sprache',
+        'home': 'Startseite',
+        'january': 'Januar', 'february': 'Februar', 'march': 'März', 'april': 'April',
+        'may': 'Mai', 'june': 'Juni', 'july': 'Juli', 'august': 'August',
+        'september': 'September', 'october': 'Oktober', 'november': 'November', 'december': 'Dezember',
+        'client_added': 'Kunde erfolgreich hinzugefügt.',
+        'client_updated': 'Kunde erfolgreich aktualisiert.',
+        'client_deleted': 'Kunde erfolgreich gelöscht.',
+        'incorrect_password': 'Falsches Admin-Passwort.',
+        'required_field': 'Dieses Feld ist erforderlich.',
+        'send_greetings': 'Geburtstagsgrüße senden',
+        'greeting_subject': 'Alles Gute zum Geburtstag, {name}!',
+        'greeting_message': 'Liebe/r {name},\n\nWir wünschen Dir einen wundervollen Geburtstag! Möge dieser besondere Tag Dir Freude, Glück und all die Dinge bringen, die Du liebst.\n\nVon uns allen bei Jesus Projekt Erfurt wünschen wir Dir ein fantastisches Jahr!\n\nHerzliche Grüße,\nJesus Projekt Erfurt Team',
+        'send_to_all': 'An alle senden',
+        'sending': 'Wird gesendet...',
+        'greetings_sent': 'Geburtstagsgrüße erfolgreich gesendet!',
+        'greeting_error': 'Fehler beim Senden. Bitte versuchen Sie es erneut.',
+        'no_email_clients': 'Keine Kunden mit E-Mail-Adressen gefunden.',
+        'recipients': 'Empfänger',
+        'subject': 'Betreff',
+        'message': 'Nachricht',
+        'mail_not_configured': 'E-Mail ist nicht konfiguriert. Bitte gehen Sie zu Einstellungen.',
+        'user_management': 'Benutzerverwaltung',
+        'add_user': 'Benutzer hinzufügen',
+        'edit_user': 'Benutzer bearbeiten',
+        'users': 'Benutzer',
+        'role': 'Rolle',
+        'admin': 'Administrator',
+        'staff': 'Mitarbeiter',
+        'status': 'Status',
+        'active': 'Aktiv',
+        'inactive': 'Inaktiv',
+        'last_login': 'Letzte Anmeldung',
+        'profile': 'Profil',
+        'profile_picture': 'Profilbild',
+        'new_password': 'Neues Passwort',
+        'leave_blank_no_change': 'Leer lassen, um aktuelles Passwort zu behalten',
+        'admin_actions': 'Admin-Aktionen',
+        'reset_password': 'Passwort zurücksetzen',
+        'confirm_reset_password': 'Sind Sie sicher, dass Sie das Passwort zurücksetzen möchten?',
+        'confirm_delete_user': 'Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?',
+        'cannot_delete_self': 'Sie können Ihr eigenes Konto nicht löschen.',
+        'user_added': 'Benutzer erfolgreich hinzugefügt.',
+        'user_updated': 'Benutzer erfolgreich aktualisiert.',
+        'user_deleted': 'Benutzer erfolgreich gelöscht.',
+        'user_not_found': 'Benutzer nicht gefunden.',
+        'username_exists': 'Benutzername existiert bereits.',
+        'email_exists': 'E-Mail existiert bereits.',
+        'edit_profile': 'Profil bearbeiten',
+        'settings': 'Einstellungen',
+        'email_settings': 'E-Mail-Einstellungen',
+        'smtp_server': 'SMTP-Server',
+        'smtp_port': 'SMTP-Port',
+        'use_tls': 'TLS verwenden',
+        'email_address': 'E-Mail-Adresse',
+        'app_password': 'App-Passwort',
+        'sender_address': 'Absenderadresse',
+        'settings_saved': 'Einstellungen erfolgreich gespeichert.',
+    }
+}
+
+
+def t(key, lang='en'):
+    return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+
+
+def can_write_to(directory):
+    try:
+        test_file = os.path.join(directory, '.write_test')
+        with open(test_file, 'w') as f:
+            f.write('test')
+        os.remove(test_file)
+        return True
+    except (OSError, PermissionError):
+        return False
+
+
+def get_db_path():
+    if can_write_to(APP_DIR):
+        return EXE_DB_PATH, APP_DIR, UPLOADS_DIR
+    else:
+        os.makedirs(APPDATA_DIR, exist_ok=True)
+        os.makedirs(APPDATA_UPLOADS, exist_ok=True)
+        return APPDATA_DB_PATH, APPDATA_DIR, APPDATA_UPLOADS
+
+
+def get_icon_path():
+    icon_path = os.path.join(APP_DIR, 'app.ico')
+    if os.path.exists(icon_path):
+        return icon_path
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, 'app.ico')
+    return icon_path
+
+
+def get_logo_path():
+    """Get local logo file or download from web"""
+    if os.path.exists(LOCAL_LOGO):
+        return LOCAL_LOGO
+    # Try to download
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(LOGO_URL, LOCAL_LOGO)
+        return LOCAL_LOGO
+    except Exception:
+        return None
+
+
+# ==================== LOADING SCREEN ====================
+
+class LoadingScreen:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Jesus Projekt Erfurt")
+        self.root.geometry("500x400")
+        self.root.resizable(False, False)
+        self.root.configure(bg=BG)
+
+        # Set icon
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except Exception:
+            pass
+
+        # Center
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() - 500) // 2
+        y = (self.root.winfo_screenheight() - 400) // 2
+        self.root.geometry(f"500x400+{x}+{y}")
+
+        # Main container - white card style like web version
+        main = tk.Frame(self.root, bg=BG)
+        main.pack(expand=True, fill='both')
+
+        # White card
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=0)
+        card.place(relx=0.5, rely=0.5, anchor='center', width=400, height=300)
+
+        # Logo - try to load image, fall back to emoji
+        logo_img = get_logo_path()
+        if logo_img:
+            try:
+                img = Image.open(logo_img)
+                img.thumbnail((150, 150))
+                self.logo_photo = ImageTk.PhotoImage(img)
+                tk.Label(card, image=self.logo_photo, bg=WHITE).pack(pady=(30, 10))
+            except Exception:
+                tk.Label(card, text="🎂", font=("Segoe UI Emoji", 48), bg=WHITE, fg=PRIMARY).pack(pady=(30, 10))
+        else:
+            tk.Label(card, text="🎂", font=("Segoe UI Emoji", 48), bg=WHITE, fg=PRIMARY).pack(pady=(30, 10))
+
+        # Title
+        tk.Label(card, text="Jesus Projekt Erfurt", font=("Segoe UI", 18, "bold"),
+                bg=WHITE, fg=PRIMARY).pack()
+        tk.Label(card, text="Birthday Monitoring", font=("Segoe UI", 11),
+                bg=WHITE, fg=TEXT).pack(pady=(0, 20))
+
+        # Status
+        self.status_label = tk.Label(card, text="Loading...", font=("Segoe UI", 10),
+                                     bg=WHITE, fg=TEXT)
+        self.status_label.pack(pady=(0, 10))
+
+        # Progress bar
+        self.progress = ttk.Progressbar(card, length=300, mode='determinate')
+        self.progress.pack(pady=(0, 20))
+
+    def update_status(self, text, progress=None):
+        self.status_label.config(text=text)
+        if progress is not None:
+            self.progress['value'] = progress
+        self.root.update_idletasks()
+        self.root.update()
+
+
+# ==================== LOGIN WINDOW ====================
 
 class LoginWindow:
-    """Login window"""
-
     def __init__(self, root, db_path, db_dir, uploads_dir):
         self.root = root
         self.db_path = db_path
         self.db_dir = db_dir
         self.uploads_dir = uploads_dir
         self.engine, self.session = init_db(db_path)
+        self.lang = 'en'
 
         self.root.title("Login - Jesus Projekt Erfurt")
-        self.root.geometry("450x500")
+        self.root.geometry("450x550")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
         # Set icon
         try:
-            from app import get_icon_path
             icon_path = get_icon_path()
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
@@ -51,70 +398,125 @@ class LoginWindow:
         # Center
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 450) // 2
-        y = (self.root.winfo_screenheight() - 500) // 2
-        self.root.geometry(f"450x500+{x}+{y}")
+        y = (self.root.winfo_screenheight() - 550) // 2
+        self.root.geometry(f"450x550+{x}+{y}")
 
         self.build_ui()
 
     def build_ui(self):
+        # Main container with padding
         main = tk.Frame(self.root, bg=BG)
-        main.pack(expand=True, fill='both')
+        main.pack(expand=True, fill='both', padx=25, pady=50)
 
-        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=1, highlightbackground='#dddddd')
-        card.place(relx=0.5, rely=0.5, anchor='center', width=380, height=420)
+        # White card (like web version)
+        card = tk.Frame(main, bg=WHITE, bd=1, relief='solid', highlightthickness=0)
+        card.pack(fill='both', expand=True)
+
+        inner = tk.Frame(card, bg=WHITE)
+        inner.pack(fill='both', expand=True, padx=40, pady=40)
 
         # Logo
-        tk.Label(card, text="🎂", font=("Segoe UI Emoji", 48), bg=WHITE, fg=PRIMARY).pack(pady=(20, 5))
+        logo_img = get_logo_path()
+        if logo_img:
+            try:
+                img = Image.open(logo_img)
+                img.thumbnail((150, 80))
+                self.logo_photo = ImageTk.PhotoImage(img)
+                logo_label = tk.Label(inner, image=self.logo_photo, bg=WHITE)
+                logo_label.pack(pady=(0, 15))
+            except Exception:
+                tk.Label(inner, text="🎂", font=("Segoe UI Emoji", 36), bg=WHITE, fg=PRIMARY).pack(pady=(0, 15))
+        else:
+            tk.Label(inner, text="🎂", font=("Segoe UI Emoji", 36), bg=WHITE, fg=PRIMARY).pack(pady=(0, 15))
 
         # Title
-        tk.Label(card, text="Jesus Projekt Erfurt", font=("Segoe UI", 18, "bold"),
-                bg=WHITE, fg=PRIMARY).pack()
-        tk.Label(card, text="Birthday Monitoring", font=("Segoe UI", 10),
-                bg=WHITE, fg=TEXT).pack(pady=(0, 20))
+        self.title_label = tk.Label(inner, text="Jesus Projekt Erfurt",
+                                    font=("Segoe UI", 18, "bold"),
+                                    bg=WHITE, fg=PRIMARY)
+        self.title_label.pack()
+        self.subtitle_label = tk.Label(inner, text="Birthday Monitoring",
+                                       font=("Segoe UI", 10),
+                                       bg=WHITE, fg=TEXT)
+        self.subtitle_label.pack(pady=(0, 30))
 
-        # Username
-        tk.Label(card, text="Username", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', padx=30)
+        # Username field
+        self.username_label = tk.Label(inner, text="Username", font=("Segoe UI", 10),
+                                      bg=WHITE, fg=TEXT_DARK, anchor='w')
+        self.username_label.pack(fill='x')
+        username_frame = tk.Frame(inner, bg=WHITE, bd=1, relief='solid', highlightthickness=1,
+                                  highlightbackground='#ced4da')
+        username_frame.pack(fill='x', pady=(2, 15), ipady=2)
+        self.username_icon = tk.Label(username_frame, text="👤", font=("Segoe UI", 11),
+                                      bg='#e9ecef', padx=8, pady=4)
+        self.username_icon.pack(side='left', fill='y')
         self.username_var = tk.StringVar()
-        self.username_entry = tk.Entry(card, textvariable=self.username_var, font=("Segoe UI", 11),
-                                       relief='solid', bd=1)
-        self.username_entry.pack(fill='x', padx=30, pady=(2, 12), ipady=4)
+        self.username_entry = tk.Entry(username_frame, textvariable=self.username_var,
+                                       font=("Segoe UI", 11), bd=0, bg=WHITE, relief='flat')
+        self.username_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
 
-        # Password
-        tk.Label(card, text="Password", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', padx=30)
+        # Password field
+        self.password_label = tk.Label(inner, text="Password", font=("Segoe UI", 10),
+                                      bg=WHITE, fg=TEXT_DARK, anchor='w')
+        self.password_label.pack(fill='x')
+        password_frame = tk.Frame(inner, bg=WHITE, bd=1, relief='solid', highlightthickness=1,
+                                  highlightbackground='#ced4da')
+        password_frame.pack(fill='x', pady=(2, 20), ipady=2)
+        self.password_icon = tk.Label(password_frame, text="🔒", font=("Segoe UI", 11),
+                                      bg='#e9ecef', padx=8, pady=4)
+        self.password_icon.pack(side='left', fill='y')
         self.password_var = tk.StringVar()
-        self.password_entry = tk.Entry(card, textvariable=self.password_var, font=("Segoe UI", 11),
-                                       show='*', relief='solid', bd=1)
-        self.password_entry.pack(fill='x', padx=30, pady=(2, 20), ipady=4)
+        self.password_entry = tk.Entry(password_frame, textvariable=self.password_var,
+                                       font=("Segoe UI", 11), bd=0, bg=WHITE,
+                                       show='*', relief='flat')
+        self.password_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
 
         # Login button
-        self.login_btn = tk.Button(card, text="Login", font=("Segoe UI", 11, "bold"),
+        self.login_btn = tk.Button(inner, text="🔑  Login", font=("Segoe UI", 11, "bold"),
                                    bg=PRIMARY, fg=WHITE, activebackground=PRIMARY_DARK,
                                    activeforeground=WHITE, relief='flat', cursor='hand2',
-                                   command=self.do_login)
-        self.login_btn.pack(fill='x', padx=30, pady=(0, 10), ipady=8)
+                                   bd=0, command=self.do_login)
+        self.login_btn.pack(fill='x', pady=(0, 15), ipady=8)
 
-        # Language buttons
-        lang_frame = tk.Frame(card, bg=WHITE)
-        lang_frame.pack(pady=10)
-        self.lang_var = tk.StringVar(value='en')
-        tk.Button(lang_frame, text="English", font=("Segoe UI", 9),
-                 bg=WHITE, fg=TEXT, relief='flat', cursor='hand2',
-                 command=lambda: self.set_lang('en')).pack(side='left', padx=5)
+        # Language switcher (same as web version)
+        lang_frame = tk.Frame(inner, bg=WHITE)
+        lang_frame.pack(pady=(5, 0))
+        self.en_btn = tk.Button(lang_frame, text="English", font=("Segoe UI", 9),
+                               bg=WHITE, fg=PRIMARY, relief='flat', cursor='hand2',
+                               bd=0, activebackground=WHITE,
+                               command=lambda: self.set_lang('en'))
+        self.en_btn.pack(side='left', padx=5)
         tk.Label(lang_frame, text="|", bg=WHITE, fg=TEXT).pack(side='left')
-        tk.Button(lang_frame, text="Deutsch", font=("Segoe UI", 9),
-                 bg=WHITE, fg=TEXT, relief='flat', cursor='hand2',
-                 command=lambda: self.set_lang('de')).pack(side='left', padx=5)
+        self.de_btn = tk.Button(lang_frame, text="Deutsch", font=("Segoe UI", 9),
+                               bg=WHITE, fg=TEXT, relief='flat', cursor='hand2',
+                               bd=0, activebackground=WHITE,
+                               command=lambda: self.set_lang('de'))
+        self.de_btn.pack(side='left', padx=5)
 
         # Status
-        self.status_label = tk.Label(card, text="", font=("Segoe UI", 9), bg=WHITE, fg='red')
-        self.status_label.pack()
+        self.status_label = tk.Label(inner, text="", font=("Segoe UI", 9),
+                                     bg=WHITE, fg=DANGER)
+        self.status_label.pack(pady=(10, 0))
 
-        # Bind Enter key
+        # Bind Enter
         self.root.bind('<Return>', lambda e: self.do_login())
         self.username_entry.focus()
 
     def set_lang(self, lang):
-        self.lang_var.set(lang)
+        self.lang = lang
+        self.update_texts()
+
+    def update_texts(self):
+        """Update all text elements based on language"""
+        self.username_label.config(text=t('username', self.lang))
+        self.password_label.config(text=t('password', self.lang))
+        self.login_btn.config(text=f"🔑  {t('login', self.lang)}")
+
+        if self.lang == 'en':
+            self.en_btn.config(fg=PRIMARY)
+            self.de_btn.config(fg=TEXT)
+        else:
+            self.en_btn.config(fg=TEXT)
+            self.de_btn.config(fg=PRIMARY)
 
     def do_login(self):
         username = self.username_var.get().strip()
@@ -127,25 +529,24 @@ class LoginWindow:
         user = self.session.query(User).filter_by(username=username).first()
         if user and user.check_password(password):
             if not user.is_active:
-                self.status_label.config(text="Account is deactivated")
+                self.status_label.config(text=t('account_deactivated', self.lang))
                 return
 
             user.last_login = datetime.utcnow()
             self.session.commit()
 
-            # Open main app
             self.root.destroy()
             main_root = tk.Tk()
             MainApp(main_root, self.db_path, self.db_dir, self.uploads_dir, user)
             main_root.mainloop()
         else:
-            self.status_label.config(text="Invalid username or password")
+            self.status_label.config(text=t('login_error', self.lang))
             self.password_var.set('')
 
 
-class MainApp:
-    """Main application window with dashboard, clients, users, settings"""
+# ==================== MAIN APP ====================
 
+class MainApp:
     def __init__(self, root, db_path, db_dir, uploads_dir, current_user):
         self.root = root
         self.db_path = db_path
@@ -156,12 +557,11 @@ class MainApp:
         self.lang = current_user.language or 'en'
 
         self.root.title("Jesus Projekt Erfurt - Birthday Monitoring")
-        self.root.geometry("1200x700")
+        self.root.geometry("1200x750")
         self.root.configure(bg=BG)
 
         # Set icon
         try:
-            from app import get_icon_path
             icon_path = get_icon_path()
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
@@ -171,185 +571,242 @@ class MainApp:
         # Center
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 1200) // 2
-        y = (self.root.winfo_screenheight() - 700) // 2
-        self.root.geometry(f"1200x700+{x}+{y}")
+        y = (self.root.winfo_screenheight() - 750) // 2
+        self.root.geometry(f"1200x750+{x}+{y}")
 
         self.build_ui()
         self.show_dashboard()
 
     def build_ui(self):
-        # Top bar
-        topbar = tk.Frame(self.root, bg=PRIMARY, height=60)
-        topbar.pack(fill='x')
-        topbar.pack_propagate(False)
+        # Top navbar (orange like web version)
+        navbar = tk.Frame(self.root, bg=PRIMARY, height=56)
+        navbar.pack(fill='x')
+        navbar.pack_propagate(False)
 
-        # Logo and title
-        tk.Label(topbar, text="🎂 Jesus Projekt Erfurt", font=("Segoe UI", 14, "bold"),
-                bg=PRIMARY, fg=WHITE).pack(side='left', padx=20, pady=15)
+        # Logo + brand
+        brand_frame = tk.Frame(navbar, bg=PRIMARY)
+        brand_frame.pack(side='left', padx=15)
 
-        # User info
-        user_frame = tk.Frame(topbar, bg=PRIMARY)
-        user_frame.pack(side='right', padx=20, pady=10)
+        logo_img = get_logo_path()
+        if logo_img:
+            try:
+                img = Image.open(logo_img)
+                img.thumbnail((35, 35))
+                self.nav_logo = ImageTk.PhotoImage(img)
+                tk.Label(brand_frame, image=self.nav_logo, bg=PRIMARY).pack(side='left', padx=(0, 8))
+            except Exception:
+                tk.Label(brand_frame, text="🎂", font=("Segoe UI Emoji", 18),
+                        bg=PRIMARY, fg=WHITE).pack(side='left', padx=(0, 8))
 
-        role_text = "Admin" if self.current_user.has_role('admin') else "Staff"
-        tk.Label(user_frame, text=f"👤 {self.current_user.full_name} ({role_text})",
-                font=("Segoe UI", 10), bg=PRIMARY, fg=WHITE).pack(side='right', padx=10)
-        tk.Button(user_frame, text="Logout", font=("Segoe UI", 9),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
-                 command=self.logout).pack(side='right')
+        self.brand_label = tk.Label(brand_frame, text=t('app_name', self.lang),
+                                    font=("Segoe UI", 14, "bold"),
+                                    bg=PRIMARY, fg=WHITE)
+        self.brand_label.pack(side='left', pady=15)
 
-        # Language switcher
-        lang_frame = tk.Frame(topbar, bg=PRIMARY)
-        lang_frame.pack(side='right', padx=10)
-        tk.Button(lang_frame, text="EN", font=("Segoe UI", 9),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
-                 command=lambda: self.switch_lang('en')).pack(side='left')
-        tk.Button(lang_frame, text="DE", font=("Segoe UI", 9),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
-                 command=lambda: self.switch_lang('de')).pack(side='left')
+        # Nav items
+        nav_items = tk.Frame(navbar, bg=PRIMARY)
+        nav_items.pack(side='left', padx=20)
 
-        # Sidebar
-        sidebar = tk.Frame(self.root, bg=DARK, width=200)
-        sidebar.pack(side='left', fill='y')
-        sidebar.pack_propagate(False)
+        self.nav_dashboard = tk.Button(nav_items, text=f"🏠 {t('home', self.lang)}",
+                                       font=("Segoe UI", 10), bg=PRIMARY, fg=WHITE,
+                                       relief='flat', cursor='hand2', bd=0,
+                                       activebackground=PRIMARY_DARK,
+                                       command=self.show_dashboard)
+        self.nav_dashboard.pack(side='left', padx=5, pady=15)
 
-        # Menu buttons
-        menu_items = [
-            ("🏠 Dashboard", self.show_dashboard),
-            ("👥 Clients", self.show_clients),
-        ]
+        self.nav_clients = tk.Button(nav_items, text=f"👥 {t('clients', self.lang)}",
+                                     font=("Segoe UI", 10), bg=PRIMARY, fg=WHITE,
+                                     relief='flat', cursor='hand2', bd=0,
+                                     activebackground=PRIMARY_DARK,
+                                     command=self.show_clients)
+        self.nav_clients.pack(side='left', padx=5, pady=15)
+
+        # Right side - language + user
+        right_frame = tk.Frame(navbar, bg=PRIMARY)
+        right_frame.pack(side='right', padx=15)
+
+        # Language dropdown
+        self.lang_btn = tk.Menubutton(right_frame, text=f"🌐 {t('language', self.lang)}",
+                                      font=("Segoe UI", 10), bg=PRIMARY, fg=WHITE,
+                                      relief='flat', cursor='hand2', bd=0,
+                                      activebackground=PRIMARY_DARK)
+        self.lang_menu = tk.Menu(self.lang_btn, tearoff=0)
+        self.lang_menu.add_command(label="English", command=lambda: self.switch_lang('en'))
+        self.lang_menu.add_command(label="Deutsch", command=lambda: self.switch_lang('de'))
+        self.lang_btn.config(menu=self.lang_menu)
+        self.lang_btn.pack(side='left', padx=5, pady=15)
+
+        # User dropdown
+        role_text = t('admin', self.lang) if self.current_user.has_role('admin') else t('staff', self.lang)
+        self.user_btn = tk.Menubutton(right_frame,
+                                      text=f"👤 {self.current_user.full_name} ({role_text})",
+                                      font=("Segoe UI", 10), bg=PRIMARY, fg=WHITE,
+                                      relief='flat', cursor='hand2', bd=0,
+                                      activebackground=PRIMARY_DARK)
+        self.user_menu = tk.Menu(self.user_btn, tearoff=0)
+        self.user_menu.add_command(label=f"✏️ {t('edit_profile', self.lang)}",
+                                   command=self.show_profile)
         if self.current_user.has_role('admin'):
-            menu_items.append(("👤 Users", self.show_users))
-            menu_items.append(("⚙️ Settings", self.show_settings))
-        menu_items.append(("👤 My Profile", self.show_profile))
-
-        for text, command in menu_items:
-            btn = tk.Button(sidebar, text=text, font=("Segoe UI", 11),
-                          bg=DARK, fg=WHITE, activebackground=PRIMARY,
-                          activeforeground=WHITE, relief='flat', cursor='hand2',
-                          anchor='w', padx=20, command=command)
-            btn.pack(fill='x', pady=2, ipady=10)
+            self.user_menu.add_command(label=f"👤 {t('users', self.lang)}",
+                                       command=self.show_users)
+            self.user_menu.add_command(label=f"⚙️ {t('settings', self.lang)}",
+                                       command=self.show_settings)
+        self.user_menu.add_separator()
+        self.user_menu.add_command(label=f"🚪 {t('logout', self.lang)}",
+                                   command=self.logout)
+        self.user_btn.config(menu=self.user_menu)
+        self.user_btn.pack(side='left', padx=5, pady=15)
 
         # Content area
         self.content = tk.Frame(self.root, bg=BG)
-        self.content.pack(side='left', fill='both', expand=True)
+        self.content.pack(fill='both', expand=True)
 
     def switch_lang(self, lang):
         self.lang = lang
         self.current_user.language = lang
         self.session.commit()
-        self.refresh_content()
+        # Rebuild UI with new language
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self.build_ui()
+        self.show_dashboard()
 
     def clear_content(self):
         for widget in self.content.winfo_children():
             widget.destroy()
 
-    def refresh_content(self):
-        # Just clear and re-show current view
-        self.clear_content()
-        # Simple approach: rebuild UI
-        # For now, just go to dashboard
-        self.show_dashboard()
+    # ==================== DASHBOARD ====================
 
     def show_dashboard(self):
         self.clear_content()
 
         # Header
         header = tk.Frame(self.content, bg=BG)
-        header.pack(fill='x', padx=20, pady=20)
-
-        tk.Label(header, text="Dashboard", font=("Segoe UI", 20, "bold"),
-                bg=BG, fg=DARK).pack(side='left')
+        header.pack(fill='x', padx=20, pady=(20, 10))
+        tk.Label(header, text=f"📅 {t('dashboard', self.lang)}",
+                font=("Segoe UI", 22, "bold"), bg=BG, fg=DARK).pack(side='left')
 
         # Stats cards
-        stats = tk.Frame(self.content, bg=BG)
-        stats.pack(fill='x', padx=20)
+        stats_frame = tk.Frame(self.content, bg=BG)
+        stats_frame.pack(fill='x', padx=20, pady=10)
 
         total_clients = self.session.query(Client).count()
-        today_birthdays = self.session.query(Client).filter(
-            Client.birthday.like(f'%-{date.today().strftime("%m-%d")}')
-        ).count()
 
-        self.create_stat_card(stats, "Total Clients", str(total_clients), PRIMARY).pack(side='left', padx=5, pady=5, fill='x', expand=True)
-        self.create_stat_card(stats, "Today's Birthdays", str(today_birthdays), SECONDARY).pack(side='left', padx=5, pady=5, fill='x', expand=True)
+        # Total clients card (orange like web)
+        self.create_stat_card(stats_frame, t('total_clients', self.lang), str(total_clients),
+                             PRIMARY, "👥").pack(side='left', padx=5, fill='x', expand=True)
+
+        # Today's birthdays
+        today_str = date.today().strftime('%m-%d')
+        today_birthdays = self.session.query(Client).filter(
+            Client.birthday.like(f'%-{today_str}')
+        ).count()
+        self.create_stat_card(stats_frame, "Today's Birthdays" if self.lang == 'en' else "Heutige Geburtstage",
+                             str(today_birthdays), SECONDARY, "🎂").pack(side='left', padx=5, fill='x', expand=True)
+
+        # Birthday celebrants card
+        main_card = tk.Frame(self.content, bg=WHITE, bd=0, highlightthickness=1,
+                            highlightbackground='#e0e0e0')
+        main_card.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+
+        # Card header
+        card_header = tk.Frame(main_card, bg=WHITE)
+        card_header.pack(fill='x', padx=20, pady=(15, 10))
+
+        tk.Label(card_header, text=f"📆 {t('birthday_celebrants', self.lang)}",
+                font=("Segoe UI", 14, "bold"), bg=WHITE, fg=DARK).pack(side='left')
+
+        # Send Greetings button (right side)
+        self.send_btn = tk.Button(card_header, text=f"📧 {t('send_greetings', self.lang)}",
+                                  font=("Segoe UI", 10, "bold"),
+                                  bg=SUCCESS, fg=WHITE, relief='flat', cursor='hand2',
+                                  bd=0, command=self.open_send_greetings)
+        self.send_btn.pack(side='right')
 
         # Month selector
-        month_frame = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid')
-        month_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        select_frame = tk.Frame(main_card, bg=WHITE)
+        select_frame.pack(fill='x', padx=20, pady=10)
 
-        tk.Label(month_frame, text="Birthday Celebrants", font=("Segoe UI", 14, "bold"),
-                bg=WHITE, fg=DARK).pack(anchor='w', padx=15, pady=(15, 5))
+        tk.Label(select_frame, text=t('select_month', self.lang) + ":",
+                font=("Segoe UI", 11), bg=WHITE).pack(side='left', padx=(0, 10))
 
-        select_frame = tk.Frame(month_frame, bg=WHITE)
-        select_frame.pack(fill='x', padx=15, pady=10)
+        months = [t('all_months', self.lang),
+                 t('january', self.lang), t('february', self.lang), t('march', self.lang),
+                 t('april', self.lang), t('may', self.lang), t('june', self.lang),
+                 t('july', self.lang), t('august', self.lang), t('september', self.lang),
+                 t('october', self.lang), t('november', self.lang), t('december', self.lang)]
 
-        months_en = ['January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December']
-        months_de = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-        months = months_de if self.lang == 'de' else months_en
-
-        tk.Label(select_frame, text="Select Month:", font=("Segoe UI", 10),
-                bg=WHITE).pack(side='left', padx=(0, 10))
-        self.month_var = tk.StringVar()
-        month_combo = ttk.Combobox(select_frame, textvariable=self.month_var,
-                                   values=['All'] + months, state='readonly', width=20)
-        month_combo.set('All')
-        month_combo.pack(side='left', padx=(0, 10))
-        month_combo.bind('<<ComboboxSelected>>', lambda e: self.load_birthday_list(month_combo))
-
-        # Send Greetings button
-        tk.Button(select_frame, text="📧 Send Greetings", font=("Segoe UI", 10, "bold"),
-                 bg='#28a745', fg=WHITE, relief='flat', cursor='hand2',
-                 command=self.open_send_greetings).pack(side='right')
+        self.month_var = tk.StringVar(value=t('all_months', self.lang))
+        self.month_combo = ttk.Combobox(select_frame, textvariable=self.month_var,
+                                        values=months, state='readonly', width=20,
+                                        font=("Segoe UI", 11))
+        self.month_combo.pack(side='left', padx=(0, 10))
+        self.month_combo.bind('<<ComboboxSelected>>', lambda e: self.load_birthday_list())
 
         # Table
-        table_frame = tk.Frame(month_frame, bg=WHITE)
-        table_frame.pack(fill='both', expand=True, padx=15, pady=10)
+        table_frame = tk.Frame(main_card, bg=WHITE)
+        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
-        columns = ('Name', 'Birthday', 'Age', 'Phone', 'Email', 'Privacy', 'Photo')
-        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
-        for col in columns:
+        columns = (t('first_name', self.lang), t('last_name', self.lang),
+                  t('birthday', self.lang), t('age', self.lang),
+                  t('phone', self.lang), t('email', self.lang),
+                  t('privacy_signed', self.lang), t('photo_permission', self.lang))
+
+        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=12)
+        widths = [120, 120, 100, 60, 120, 180, 80, 80]
+        for col, w in zip(columns, widths):
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=120)
+            self.tree.column(col, width=w, anchor='center')
 
         scrollbar = ttk.Scrollbar(table_frame, orient='vertical', command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         self.tree.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
 
-        self.load_birthday_list(month_combo)
+        self.load_birthday_list()
 
-    def create_stat_card(self, parent, title, value, color):
+    def create_stat_card(self, parent, title, value, color, icon):
         card = tk.Frame(parent, bg=color, bd=0)
         content = tk.Frame(card, bg=color)
-        content.pack(padx=20, pady=15, fill='both', expand=True)
-        tk.Label(content, text=title, font=("Segoe UI", 11), bg=color, fg=WHITE).pack(anchor='w')
-        tk.Label(content, text=value, font=("Segoe UI", 28, "bold"), bg=color, fg=WHITE).pack(anchor='w')
+        content.pack(fill='both', expand=True, padx=20, pady=15)
+
+        top = tk.Frame(content, bg=color)
+        top.pack(fill='x')
+        tk.Label(top, text=title, font=("Segoe UI", 11), bg=color, fg=WHITE).pack(side='left')
+        tk.Label(top, text=icon, font=("Segoe UI Emoji", 20), bg=color, fg=WHITE).pack(side='right')
+
+        tk.Label(content, text=value, font=("Segoe UI", 28, "bold"), bg=color, fg=WHITE).pack(anchor='w', pady=(8, 0))
         return card
 
-    def load_birthday_list(self, month_combo):
+    def load_birthday_list(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        selected = month_combo.get()
+        selected = self.month_var.get()
         query = self.session.query(Client)
 
-        if selected != 'All':
-            months_en = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December']
-            months_de = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-            months = months_de if self.lang == 'de' else months_en
+        if selected != t('all_months', self.lang):
+            months = [t('january', self.lang), t('february', self.lang), t('march', self.lang),
+                     t('april', self.lang), t('may', self.lang), t('june', self.lang),
+                     t('july', self.lang), t('august', self.lang), t('september', self.lang),
+                     t('october', self.lang), t('november', self.lang), t('december', self.lang)]
             month_num = months.index(selected) + 1
-            query = query.filter(
-                Client.birthday.like(f'%-{month_num:02d}-%')
-            )
+            query = query.filter(Client.birthday.like(f'%-{month_num:02d}-%'))
 
         clients = query.order_by(Client.birthday).all()
+        self.current_month_clients = clients
+
+        # Show/hide send button
+        has_email = any(c.email for c in clients)
+        if hasattr(self, 'send_btn'):
+            if has_email:
+                self.send_btn.pack(side='right')
+            else:
+                self.send_btn.pack_forget()
+
         for c in clients:
-            self.tree.insert('', 'end', values=(
-                f"{c.first_name} {c.last_name}",
+            self.tree.insert('', 'end', iid=c.id, values=(
+                c.first_name, c.last_name,
                 c.birthday.strftime('%d.%m.%Y'),
                 c.age,
                 c.phone or '-',
@@ -358,29 +815,52 @@ class MainApp:
                 '✓' if c.photo_permission else '✗'
             ))
 
+        if not clients:
+            # Show empty state
+            empty = tk.Label(self.tree.master, text=t('no_celebrants', self.lang),
+                           font=("Segoe UI", 12), bg=WHITE, fg=TEXT)
+            empty.place(relx=0.5, rely=0.5, anchor='center')
+
+    def open_send_greetings(self):
+        clients = getattr(self, 'current_month_clients', [])
+        clients_with_email = [c for c in clients if c.email]
+        if not clients_with_email:
+            messagebox.showwarning("No Recipients", t('no_email_clients', self.lang))
+            return
+        GreetingDialog(self.root, self.session, clients_with_email, self)
+
+    # ==================== CLIENTS ====================
+
     def show_clients(self):
         self.clear_content()
 
         header = tk.Frame(self.content, bg=BG)
-        header.pack(fill='x', padx=20, pady=20)
-        tk.Label(header, text="Clients", font=("Segoe UI", 20, "bold"),
-                bg=BG, fg=DARK).pack(side='left')
-        tk.Button(header, text="➕ Add Client", font=("Segoe UI", 10, "bold"),
+        header.pack(fill='x', padx=20, pady=(20, 10))
+        tk.Label(header, text=f"👥 {t('clients', self.lang)}",
+                font=("Segoe UI", 22, "bold"), bg=BG, fg=DARK).pack(side='left')
+
+        tk.Button(header, text=f"➕ {t('add_client', self.lang)}",
+                 font=("Segoe UI", 10, "bold"),
                  bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
-                 command=self.open_add_client).pack(side='right')
+                 bd=0, command=self.open_add_client).pack(side='right')
 
         # Table
-        table_frame = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid')
-        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        table_card = tk.Frame(self.content, bg=WHITE, bd=0, highlightthickness=1,
+                              highlightbackground='#e0e0e0')
+        table_card.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
-        columns = ('Name', 'Birthday', 'Age', 'Phone', 'Email', 'Actions')
-        self.client_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=20)
-        for col in columns:
-            self.tree_heading = self.client_tree.heading(col, text=col)
-            if col == 'Actions':
-                self.client_tree.column(col, width=150)
-            else:
-                self.client_tree.column(col, width=150)
+        table_frame = tk.Frame(table_card, bg=WHITE)
+        table_frame.pack(fill='both', expand=True, padx=15, pady=15)
+
+        columns = (t('first_name', self.lang), t('last_name', self.lang),
+                  t('birthday', self.lang), t('age', self.lang),
+                  t('phone', self.lang), t('email', self.lang), t('actions', self.lang))
+
+        self.client_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=18)
+        widths = [120, 120, 100, 60, 120, 180, 100]
+        for col, w in zip(columns, widths):
+            self.client_tree.heading(col, text=col)
+            self.client_tree.column(col, width=w, anchor='center')
 
         scrollbar = ttk.Scrollbar(table_frame, orient='vertical', command=self.client_tree.yview)
         self.client_tree.configure(yscrollcommand=scrollbar.set)
@@ -397,29 +877,29 @@ class MainApp:
                 self.client_tree.delete(item)
             clients = self.session.query(Client).order_by(Client.last_name).all()
             for c in clients:
-                actions = "Edit | Delete" if self.current_user.has_role('admin') else "Edit"
                 self.client_tree.insert('', 'end', iid=c.id, values=(
-                    f"{c.first_name} {c.last_name}",
+                    c.first_name, c.last_name,
                     c.birthday.strftime('%d.%m.%Y'),
                     c.age,
                     c.phone or '-',
                     c.email or '-',
-                    actions
+                    "✏️ 🗑️" if self.current_user.has_role('admin') else "✏️"
                 ))
 
     def edit_client_event(self, event):
         item = self.client_tree.selection()
         if item:
-            client_id = int(item[0])
-            self.open_edit_client(client_id)
+            self.open_edit_client(int(item[0]))
 
     def open_add_client(self):
-        ClientDialog(self.root, self.session, self.load_clients)
+        ClientDialog(self.root, self.session, self.uploads_dir, self.load_clients, self.lang)
 
     def open_edit_client(self, client_id):
         client = self.session.query(Client).get(client_id)
         if client:
-            ClientDialog(self.root, self.session, self.load_clients, client)
+            ClientDialog(self.root, self.session, self.uploads_dir, self.load_clients, self.lang, client, self.current_user)
+
+    # ==================== USERS ====================
 
     def show_users(self):
         if not self.current_user.has_role('admin'):
@@ -427,25 +907,31 @@ class MainApp:
         self.clear_content()
 
         header = tk.Frame(self.content, bg=BG)
-        header.pack(fill='x', padx=20, pady=20)
-        tk.Label(header, text="User Management", font=("Segoe UI", 20, "bold"),
-                bg=BG, fg=DARK).pack(side='left')
-        tk.Button(header, text="➕ Add User", font=("Segoe UI", 10, "bold"),
+        header.pack(fill='x', padx=20, pady=(20, 10))
+        tk.Label(header, text=f"👤 {t('user_management', self.lang)}",
+                font=("Segoe UI", 22, "bold"), bg=BG, fg=DARK).pack(side='left')
+
+        tk.Button(header, text=f"➕ {t('add_user', self.lang)}",
+                 font=("Segoe UI", 10, "bold"),
                  bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
-                 command=self.open_add_user).pack(side='right')
+                 bd=0, command=self.open_add_user).pack(side='right')
 
-        # Table
-        table_frame = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid')
-        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        table_card = tk.Frame(self.content, bg=WHITE, bd=0, highlightthickness=1,
+                              highlightbackground='#e0e0e0')
+        table_card.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
-        columns = ('Username', 'Email', 'Name', 'Role', 'Status', 'Actions')
-        self.user_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=20)
-        for col in columns:
+        table_frame = tk.Frame(table_card, bg=WHITE)
+        table_frame.pack(fill='both', expand=True, padx=15, pady=15)
+
+        columns = (t('username', self.lang), t('email', self.lang),
+                  t('first_name', self.lang), t('last_name', self.lang),
+                  t('role', self.lang), t('status', self.lang), t('last_login', self.lang), t('actions', self.lang))
+
+        self.user_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=18)
+        widths = [100, 150, 100, 100, 80, 80, 130, 80]
+        for col, w in zip(columns, widths):
             self.user_tree.heading(col, text=col)
-            if col == 'Actions':
-                self.user_tree.column(col, width=150)
-            else:
-                self.user_tree.column(col, width=150)
+            self.user_tree.column(col, width=w, anchor='center')
 
         scrollbar = ttk.Scrollbar(table_frame, orient='vertical', command=self.user_tree.yview)
         self.user_tree.configure(yscrollcommand=scrollbar.set)
@@ -453,7 +939,6 @@ class MainApp:
         scrollbar.pack(side='right', fill='y')
 
         self.user_tree.bind('<Double-1>', self.edit_user_event)
-
         self.load_users()
 
     def load_users(self):
@@ -463,27 +948,27 @@ class MainApp:
             users = self.session.query(User).order_by(User.username).all()
             for u in users:
                 self.user_tree.insert('', 'end', iid=u.id, values=(
-                    u.username,
-                    u.email,
-                    u.full_name,
-                    u.role,
-                    'Active' if u.is_active else 'Inactive',
-                    'Edit | Delete' if u.id != self.current_user.id else 'Edit'
+                    u.username, u.email, u.first_name or '-', u.last_name or '-',
+                    t(u.role, self.lang),
+                    t('active', self.lang) if u.is_active else t('inactive', self.lang),
+                    u.last_login.strftime('%d.%m.%Y %H:%M') if u.last_login else '-',
+                    "✏️ 🗑️" if u.id != self.current_user.id else "✏️"
                 ))
 
     def edit_user_event(self, event):
         item = self.user_tree.selection()
         if item:
-            user_id = int(item[0])
-            self.open_edit_user(user_id)
+            self.open_edit_user(int(item[0]))
 
     def open_add_user(self):
-        UserDialog(self.root, self.session, self.uploads_dir, self.load_users, is_admin=self.current_user.has_role('admin'))
+        UserDialog(self.root, self.session, self.uploads_dir, self.load_users, self.lang, is_admin=True)
 
     def open_edit_user(self, user_id):
         user = self.session.query(User).get(user_id)
         if user:
-            UserDialog(self.root, self.session, self.uploads_dir, self.load_users, user, is_admin=self.current_user.has_role('admin'))
+            UserDialog(self.root, self.session, self.uploads_dir, self.load_users, self.lang, user, self.current_user, is_admin=True)
+
+    # ==================== SETTINGS ====================
 
     def show_settings(self):
         if not self.current_user.has_role('admin'):
@@ -491,15 +976,18 @@ class MainApp:
         self.clear_content()
 
         header = tk.Frame(self.content, bg=BG)
-        header.pack(fill='x', padx=20, pady=20)
-        tk.Label(header, text="Email Settings", font=("Segoe UI", 20, "bold"),
-                bg=BG, fg=DARK).pack(side='left')
+        header.pack(fill='x', padx=20, pady=(20, 10))
+        tk.Label(header, text=f"⚙️ {t('email_settings', self.lang)}",
+                font=("Segoe UI", 22, "bold"), bg=BG, fg=DARK).pack(side='left')
 
-        # Form
-        form_frame = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid')
-        form_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        # Form card
+        form_card = tk.Frame(self.content, bg=WHITE, bd=0, highlightthickness=1,
+                            highlightbackground='#e0e0e0')
+        form_card.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
-        # Get current settings
+        form = tk.Frame(form_card, bg=WHITE)
+        form.pack(fill='both', expand=True, padx=40, pady=30)
+
         def get_setting(key, default=''):
             s = self.session.query(Settings).filter_by(key=key).first()
             return s.value if s else default
@@ -512,31 +1000,34 @@ class MainApp:
         self.smtp_tls_var = tk.BooleanVar(value=get_setting('mail_use_tls', 'true') == 'true')
 
         fields = [
-            ("SMTP Server", self.smtp_server_var, 'entry'),
-            ("SMTP Port", self.smtp_port_var, 'entry'),
-            ("Email Address", self.smtp_username_var, 'entry'),
-            ("App Password", self.smtp_password_var, 'entry'),
-            ("Sender Address", self.smtp_sender_var, 'entry'),
+            (t('smtp_server', self.lang), self.smtp_server_var, False),
+            (t('smtp_port', self.lang), self.smtp_port_var, False),
+            (t('email_address', self.lang), self.smtp_username_var, False),
+            (t('app_password', self.lang), self.smtp_password_var, True),
+            (t('sender_address', self.lang), self.smtp_sender_var, False),
         ]
 
         row = 0
-        for label, var, ftype in fields:
-            tk.Label(form_frame, text=label, font=("Segoe UI", 10), bg=WHITE,
-                    anchor='w').grid(row=row, column=0, sticky='w', padx=20, pady=10)
-            entry = tk.Entry(form_frame, textvariable=var, font=("Segoe UI", 11), width=40)
-            if 'Password' in label:
+        for label, var, is_password in fields:
+            tk.Label(form, text=label, font=("Segoe UI", 11), bg=WHITE, anchor='w').grid(
+                row=row, column=0, sticky='w', padx=5, pady=10)
+            entry = tk.Entry(form, textvariable=var, font=("Segoe UI", 11), width=40, relief='solid', bd=1)
+            if is_password:
                 entry.config(show='*')
-            entry.grid(row=row, column=1, sticky='ew', padx=20, pady=10)
+            entry.grid(row=row, column=1, sticky='ew', padx=5, pady=10)
             row += 1
 
-        tk.Label(form_frame, text="Use TLS", font=("Segoe UI", 10), bg=WHITE).grid(row=row, column=0, sticky='w', padx=20, pady=10)
-        tk.Checkbutton(form_frame, variable=self.smtp_tls_var, bg=WHITE).grid(row=row, column=1, sticky='w', padx=20, pady=10)
+        tk.Label(form, text=t('use_tls', self.lang), font=("Segoe UI", 11), bg=WHITE).grid(
+            row=row, column=0, sticky='w', padx=5, pady=10)
+        tk.Checkbutton(form, variable=self.smtp_tls_var, bg=WHITE).grid(
+            row=row, column=1, sticky='w', padx=5, pady=10)
         row += 1
 
-        form_frame.columnconfigure(1, weight=1)
+        form.columnconfigure(1, weight=1)
 
-        tk.Button(form_frame, text="Save Settings", font=("Segoe UI", 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
+        tk.Button(form, text=f"💾 {t('save', self.lang)}",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.save_settings).grid(row=row, column=0, columnspan=2, pady=20, ipadx=20, ipady=8)
 
     def save_settings(self):
@@ -548,7 +1039,6 @@ class MainApp:
             else:
                 s = Settings(key=key, value=str(value))
                 self.session.add(s)
-            self.session.commit()
 
         set_setting('mail_server', self.smtp_server_var.get())
         set_setting('mail_port', self.smtp_port_var.get())
@@ -557,40 +1047,15 @@ class MainApp:
         set_setting('mail_default_sender', self.smtp_sender_var.get())
         set_setting('mail_use_tls', 'true' if self.smtp_tls_var.get() else 'false')
 
-        messagebox.showinfo("Success", "Settings saved successfully!")
+        self.session.commit()
+        messagebox.showinfo(t('app_name', self.lang), t('settings_saved', self.lang))
+
+    # ==================== PROFILE ====================
 
     def show_profile(self):
-        self.clear_content()
-        ProfileDialog(self.root, self.session, self.uploads_dir, self)
+        ProfileDialog(self.root, self.session, self.uploads_dir, self.lang, self)
 
-    def open_send_greetings(self):
-        selected = self.month_var.get()
-        if selected == 'All':
-            months_en = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December']
-            months_de = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-            months = months_de if self.lang == 'de' else months_en
-            month_num = months.index(selected) + 1
-        else:
-            months_en = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December']
-            months_de = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-            months = months_de if self.lang == 'de' else months_en
-            month_num = months.index(selected) + 1
-
-        clients = self.session.query(Client).filter(
-            Client.birthday.like(f'%-{month_num:02d}-%'),
-            Client.email.isnot(None),
-            Client.email != ''
-        ).all()
-
-        if not clients:
-            messagebox.showwarning("No Recipients", "No clients with email addresses for this month.")
-            return
-
-        GreetingDialog(self.root, self.session, clients, self)
+    # ==================== LOGOUT ====================
 
     def logout(self):
         self.root.destroy()
@@ -599,36 +1064,58 @@ class MainApp:
         login_root.mainloop()
 
 
+# ==================== DIALOGS ====================
+
 class ClientDialog:
-    """Add/Edit client dialog"""
-    def __init__(self, parent, session, refresh_callback, client=None):
+    def __init__(self, parent, session, uploads_dir, refresh_callback, lang, client=None, current_user=None):
         self.session = session
+        self.uploads_dir = uploads_dir
         self.refresh_callback = refresh_callback
         self.client = client
+        self.current_user = current_user
+        self.lang = lang
 
         self.top = tk.Toplevel(parent)
-        self.top.title("Add Client" if client is None else "Edit Client")
-        self.top.geometry("500x600")
-        self.top.configure(bg=WHITE)
+        self.top.title(t('add_client' if client is None else 'edit_client', lang) +
+                      " - Jesus Projekt Erfurt")
+        self.top.geometry("550x700")
+        self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
 
-        # Center
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.top.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         self.top.update_idletasks()
-        x = (parent.winfo_screenwidth() - 500) // 2
-        y = (parent.winfo_screenheight() - 600) // 2
-        self.top.geometry(f"500x600+{x}+{y}")
+        x = (parent.winfo_screenwidth() - 550) // 2
+        y = (parent.winfo_screenheight() - 700) // 2
+        self.top.geometry(f"550x700+{x}+{y}")
 
         self.build_ui()
 
     def build_ui(self):
-        # Title
-        tk.Label(self.top, text="Add Client" if self.client is None else "Edit Client",
-                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(pady=20)
+        # Card
+        main = tk.Frame(self.top, bg=BG)
+        main.pack(fill='both', expand=True, padx=20, pady=20)
+
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=1, highlightbackground='#e0e0e0')
+        card.pack(fill='both', expand=True)
+
+        # Header
+        header = tk.Frame(card, bg=WHITE)
+        header.pack(fill='x', padx=25, pady=(20, 0))
+        mode = 'add' if self.client is None else 'edit'
+        icon = '➕' if mode == 'add' else '✏️'
+        tk.Label(header, text=f"{icon} {t('add_client' if mode == 'add' else 'edit_client', self.lang)}",
+                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
 
         # Form
-        form = tk.Frame(self.top, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30)
+        form = tk.Frame(card, bg=WHITE)
+        form.pack(fill='both', expand=True, padx=25, pady=20)
 
         self.first_name_var = tk.StringVar(value=self.client.first_name if self.client else '')
         self.last_name_var = tk.StringVar(value=self.client.last_name if self.client else '')
@@ -639,53 +1126,96 @@ class ClientDialog:
         self.photo_var = tk.BooleanVar(value=self.client.photo_permission if self.client else False)
 
         fields = [
-            ("First Name *", self.first_name_var),
-            ("Last Name *", self.last_name_var),
-            ("Address", self.address_var),
-            ("Phone", self.phone_var),
-            ("Email", self.email_var),
+            (t('first_name', self.lang) + " *", self.first_name_var),
+            (t('last_name', self.lang) + " *", self.last_name_var),
+            (t('address', self.lang), self.address_var),
+            (t('phone', self.lang), self.phone_var),
+            (t('email', self.lang), self.email_var),
         ]
 
         for label, var in fields:
-            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-            entry = tk.Entry(form, textvariable=var, font=("Segoe UI", 11))
-            entry.pack(fill='x', pady=(2, 10), ipady=4)
+            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+            entry = tk.Entry(form, textvariable=var, font=("Segoe UI", 11), relief='solid', bd=1)
+            entry.pack(fill='x', pady=(2, 5), ipady=4)
 
-        tk.Label(form, text="Birthday *", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-        self.birthday_entry = tk.Entry(form, font=("Segoe UI", 11))
+        tk.Label(form, text=t('birthday', self.lang) + " * (YYYY-MM-DD)",
+                font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+        self.birthday_entry = tk.Entry(form, font=("Segoe UI", 11), relief='solid', bd=1)
         if self.client:
             self.birthday_entry.insert(0, self.client.birthday.strftime('%Y-%m-%d'))
         else:
-            self.birthday_entry.insert(0, 'YYYY-MM-DD')
-        self.birthday_entry.pack(fill='x', pady=(2, 10), ipady=4)
+            self.birthday_entry.insert(0, date.today().strftime('%Y-%m-%d'))
+        self.birthday_entry.pack(fill='x', pady=(2, 5), ipady=4)
 
-        tk.Checkbutton(form, text="Privacy Signed", variable=self.privacy_var, bg=WHITE).pack(anchor='w', pady=5)
-        tk.Checkbutton(form, text="Photo Permission", variable=self.photo_var, bg=WHITE).pack(anchor='w', pady=5)
+        # Switches
+        switch_frame = tk.Frame(form, bg=WHITE)
+        switch_frame.pack(fill='x', pady=10)
+        tk.Checkbutton(switch_frame, text=t('privacy_signed', self.lang),
+                      variable=self.privacy_var, bg=WHITE,
+                      font=("Segoe UI", 10)).pack(anchor='w', pady=2)
+        tk.Checkbutton(switch_frame, text=t('photo_permission', self.lang),
+                      variable=self.photo_var, bg=WHITE,
+                      font=("Segoe UI", 10)).pack(anchor='w', pady=2)
 
         # Buttons
-        btn_frame = tk.Frame(self.top, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=20)
+        btn_frame = tk.Frame(card, bg=WHITE)
+        btn_frame.pack(fill='x', padx=25, pady=(0, 20))
 
-        tk.Button(btn_frame, text="Save", font=("Segoe UI", 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        tk.Button(btn_frame, text="Cancel", font=("Segoe UI", 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2',
+
+        # Delete button (admin only, edit mode)
+        if self.client and self.current_user and self.current_user.has_role('admin'):
+            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}",
+                     font=("Segoe UI", 11, "bold"),
+                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     command=self.delete_client).pack(side='left', padx=5, ipady=8)
+
+        tk.Button(btn_frame, text=t('cancel', self.lang),
+                 font=("Segoe UI", 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
+
+    def delete_client(self):
+        if not self.client:
+            return
+
+        # Admin password confirmation
+        password = tk.simpledialog.askstring(
+            t('confirm_delete', self.lang),
+            t('admin_password', self.lang) + ":",
+            show='*',
+            parent=self.top
+        )
+
+        if not password:
+            return
+
+        if not self.current_user.check_password(password):
+            messagebox.showerror(t('app_name', self.lang), t('incorrect_password', self.lang))
+            return
+
+        self.session.delete(self.client)
+        self.session.commit()
+        messagebox.showinfo(t('app_name', self.lang), t('client_deleted', self.lang))
+        self.refresh_callback()
+        self.top.destroy()
 
     def save(self):
         first_name = self.first_name_var.get().strip()
         last_name = self.last_name_var.get().strip()
         birthday_str = self.birthday_entry.get().strip()
 
-        if not first_name or not last_name or not birthday_str or birthday_str == 'YYYY-MM-DD':
-            messagebox.showerror("Error", "First name, last name, and birthday are required.")
+        if not first_name or not last_name or not birthday_str:
+            messagebox.showerror(t('app_name', self.lang), t('required_field', self.lang))
             return
 
         try:
             birthday = datetime.strptime(birthday_str, '%Y-%m-%d').date()
         except ValueError:
-            messagebox.showerror("Error", "Invalid date format. Use YYYY-MM-DD.")
+            messagebox.showerror(t('app_name', self.lang), "Invalid date format. Use YYYY-MM-DD.")
             return
 
         if self.client:
@@ -697,6 +1227,7 @@ class ClientDialog:
             self.client.birthday = birthday
             self.client.privacy_signed = self.privacy_var.get()
             self.client.photo_permission = self.photo_var.get()
+            message = t('client_updated', self.lang)
         else:
             client = Client(
                 first_name=first_name,
@@ -709,42 +1240,63 @@ class ClientDialog:
                 photo_permission=self.photo_var.get()
             )
             self.session.add(client)
+            message = t('client_added', self.lang)
 
         self.session.commit()
+        messagebox.showinfo(t('app_name', self.lang), message)
         self.refresh_callback()
         self.top.destroy()
 
 
 class UserDialog:
-    """Add/Edit user dialog"""
-    def __init__(self, parent, session, uploads_dir, refresh_callback, user=None, is_admin=False):
+    def __init__(self, parent, session, uploads_dir, refresh_callback, lang, user=None, current_user=None, is_admin=False):
         self.session = session
         self.uploads_dir = uploads_dir
         self.refresh_callback = refresh_callback
         self.user = user
+        self.current_user = current_user
         self.is_admin = is_admin
+        self.lang = lang
         self.profile_picture_path = None
 
         self.top = tk.Toplevel(parent)
-        self.top.title("Add User" if user is None else "Edit User")
-        self.top.geometry("500x700")
-        self.top.configure(bg=WHITE)
+        self.top.title(t('add_user' if user is None else 'edit_user', lang) +
+                      " - Jesus Projekt Erfurt")
+        self.top.geometry("550x750")
+        self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
 
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.top.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         self.top.update_idletasks()
-        x = (parent.winfo_screenwidth() - 500) // 2
-        y = (parent.winfo_screenheight() - 700) // 2
-        self.top.geometry(f"500x700+{x}+{y}")
+        x = (parent.winfo_screenwidth() - 550) // 2
+        y = (parent.winfo_screenheight() - 750) // 2
+        self.top.geometry(f"550x750+{x}+{y}")
 
         self.build_ui()
 
     def build_ui(self):
-        tk.Label(self.top, text="Add User" if self.user is None else "Edit User",
-                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(pady=20)
+        main = tk.Frame(self.top, bg=BG)
+        main.pack(fill='both', expand=True, padx=20, pady=20)
 
-        form = tk.Frame(self.top, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30)
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=1, highlightbackground='#e0e0e0')
+        card.pack(fill='both', expand=True)
+
+        header = tk.Frame(card, bg=WHITE)
+        header.pack(fill='x', padx=25, pady=(20, 0))
+        mode = 'add' if self.user is None else 'edit'
+        icon = '➕' if mode == 'add' else '✏️'
+        tk.Label(header, text=f"{icon} {t('add_user' if mode == 'add' else 'edit_user', self.lang)}",
+                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
+
+        form = tk.Frame(card, bg=WHITE)
+        form.pack(fill='both', expand=True, padx=25, pady=20)
 
         self.username_var = tk.StringVar(value=self.user.username if self.user else '')
         self.email_var = tk.StringVar(value=self.user.email if self.user else '')
@@ -754,56 +1306,87 @@ class UserDialog:
         self.active_var = tk.BooleanVar(value=self.user.is_active if self.user else True)
 
         fields = [
-            ("Username *", self.username_var),
-            ("Email *", self.email_var),
-            ("First Name", self.first_name_var),
-            ("Last Name", self.last_name_var),
+            (t('username', self.lang) + " *", self.username_var),
+            (t('email', self.lang) + " *", self.email_var),
+            (t('first_name', self.lang), self.first_name_var),
+            (t('last_name', self.lang), self.last_name_var),
         ]
 
         for label, var in fields:
-            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-            tk.Entry(form, textvariable=var, font=("Segoe UI", 11)).pack(fill='x', pady=(2, 10), ipady=4)
+            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+            tk.Entry(form, textvariable=var, font=("Segoe UI", 11), relief='solid', bd=1).pack(fill='x', pady=(2, 5), ipady=4)
 
-        tk.Label(form, text="Password" + ("" if self.user else " *"), font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-        self.password_entry = tk.Entry(form, font=("Segoe UI", 11), show='*')
+        pw_label = t('password', self.lang) if not self.user else t('new_password', self.lang)
         if not self.user:
-            self.password_entry.pack(fill='x', pady=(2, 10), ipady=4)
-        else:
-            self.password_entry.pack(fill='x', pady=(2, 5), ipady=4)
-            tk.Label(form, text="Leave blank to keep current", font=("Segoe UI", 8),
-                    bg=WHITE, fg=TEXT).pack(anchor='w')
+            pw_label += " *"
+        tk.Label(form, text=pw_label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+        self.password_entry = tk.Entry(form, font=("Segoe UI", 11), show='*', relief='solid', bd=1)
+        self.password_entry.pack(fill='x', pady=(2, 2), ipady=4)
+        if self.user:
+            tk.Label(form, text=t('leave_blank_no_change', self.lang),
+                    font=("Segoe UI", 8), bg=WHITE, fg=TEXT).pack(anchor='w', pady=(0, 5))
 
         if self.is_admin:
-            tk.Label(form, text="Role", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-            role_combo = ttk.Combobox(form, textvariable=self.role_var, values=['staff', 'admin'], state='readonly')
-            role_combo.pack(fill='x', pady=(2, 10), ipady=4)
+            tk.Label(form, text=t('role', self.lang), font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+            role_combo = ttk.Combobox(form, textvariable=self.role_var,
+                                      values=[t('staff', self.lang), t('admin', self.lang)],
+                                      state='readonly', font=("Segoe UI", 11))
+            # Map translated values to actual roles
+            role_to_display = {'staff': t('staff', self.lang), 'admin': t('admin', self.lang)}
+            display_to_role = {v: k for k, v in role_to_display.items()}
+            if self.user:
+                role_combo.set(role_to_display.get(self.user.role, t('staff', self.lang)))
+            else:
+                role_combo.set(t('staff', self.lang))
+            role_combo.pack(fill='x', pady=(2, 5), ipady=4)
+            self.role_combo = role_combo
+            self.display_to_role = display_to_role
 
-            tk.Checkbutton(form, text="Active", variable=self.active_var, bg=WHITE).pack(anchor='w', pady=5)
+            tk.Checkbutton(form, text=t('active', self.lang),
+                          variable=self.active_var, bg=WHITE,
+                          font=("Segoe UI", 10)).pack(anchor='w', pady=5)
 
         # Profile picture
         pic_frame = tk.Frame(form, bg=WHITE)
-        pic_frame.pack(fill='x', pady=10)
-        self.pic_label = tk.Label(pic_frame, text="No picture", bg='#dddddd', width=10, height=5)
-        self.pic_label.pack(side='left', padx=(0, 10))
-        tk.Button(pic_frame, text="Upload Photo", command=self.upload_photo).pack(side='left')
+        pic_frame.pack(fill='x', pady=15)
+        self.pic_label = tk.Label(pic_frame, text="📷", font=("Segoe UI Emoji", 30),
+                                  bg='#e9ecef', width=6, height=3)
+        self.pic_label.pack(side='left', padx=(0, 15))
+        tk.Button(pic_frame, text=f"📁 {t('profile_picture', self.lang)}",
+                 font=("Segoe UI", 10),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 command=self.upload_photo).pack(side='left', pady=20, ipadx=10, ipady=5)
 
         if self.user and self.user.profile_picture:
             self.load_user_picture()
 
         # Buttons
-        btn_frame = tk.Frame(self.top, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=20)
+        btn_frame = tk.Frame(card, bg=WHITE)
+        btn_frame.pack(fill='x', padx=25, pady=(0, 20))
 
-        tk.Button(btn_frame, text="Save", font=("Segoe UI", 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        tk.Button(btn_frame, text="Cancel", font=("Segoe UI", 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2',
+
+        if self.user and self.current_user and self.user.id != self.current_user.id:
+            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}",
+                     font=("Segoe UI", 11, "bold"),
+                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     command=self.delete_user).pack(side='left', padx=5, ipady=8)
+
+        tk.Button(btn_frame, text=t('cancel', self.lang),
+                 font=("Segoe UI", 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def upload_photo(self):
+        from tkinter import filedialog
         filename = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.gif")])
         if filename:
+            if os.path.getsize(filename) > 5 * 1024 * 1024:
+                messagebox.showerror(t('app_name', self.lang), "File too large (max 5MB)")
+                return
             self.profile_picture_path = filename
             self.load_picture_preview(filename)
 
@@ -815,7 +1398,7 @@ class UserDialog:
             self.pic_label.config(image=photo, text='', width=100, height=100)
             self.pic_label.image = photo
         except Exception as e:
-            print(f"Error loading image: {e}")
+            print(f"Error: {e}")
 
     def load_user_picture(self):
         if self.user and self.user.profile_picture:
@@ -829,21 +1412,25 @@ class UserDialog:
         password = self.password_entry.get()
 
         if not username or not email:
-            messagebox.showerror("Error", "Username and email are required.")
+            messagebox.showerror(t('app_name', self.lang), t('required_field', self.lang))
             return
 
         if not self.user and not password:
-            messagebox.showerror("Error", "Password is required for new users.")
+            messagebox.showerror(t('app_name', self.lang), "Password required for new users")
             return
 
-        # Check duplicates
         if not self.user:
             if self.session.query(User).filter_by(username=username).first():
-                messagebox.showerror("Error", "Username already exists.")
+                messagebox.showerror(t('app_name', self.lang), t('username_exists', self.lang))
                 return
             if self.session.query(User).filter_by(email=email).first():
-                messagebox.showerror("Error", "Email already exists.")
+                messagebox.showerror(t('app_name', self.lang), t('email_exists', self.lang))
                 return
+
+        # Get role
+        role = self.role_var.get()
+        if self.is_admin and hasattr(self, 'display_to_role'):
+            role = self.display_to_role.get(role, 'staff')
 
         if self.user:
             self.user.username = username
@@ -851,7 +1438,7 @@ class UserDialog:
             self.user.first_name = self.first_name_var.get().strip()
             self.user.last_name = self.last_name_var.get().strip()
             if self.is_admin:
-                self.user.role = self.role_var.get()
+                self.user.role = role
                 self.user.is_active = self.active_var.get()
             if password:
                 self.user.set_password(password)
@@ -861,7 +1448,7 @@ class UserDialog:
                 email=email,
                 first_name=self.first_name_var.get().strip(),
                 last_name=self.last_name_var.get().strip(),
-                role=self.role_var.get() if self.is_admin else 'staff',
+                role=role if self.is_admin else 'staff',
                 is_active=self.active_var.get() if self.is_admin else True,
             )
             user.set_password(password)
@@ -879,34 +1466,77 @@ class UserDialog:
             self.user.profile_picture = filename
 
         self.session.commit()
+        messagebox.showinfo(t('app_name', self.lang),
+                          t('user_added' if not hasattr(self, '_was_new') else 'user_updated', self.lang))
+        self.refresh_callback()
+        self.top.destroy()
+
+    def delete_user(self):
+        if not self.user:
+            return
+        if not messagebox.askyesno(t('confirm_delete', self.lang),
+                                   t('confirm_delete_user', self.lang)):
+            return
+
+        # Admin password
+        password = tk.simpledialog.askstring(
+            t('confirm_delete', self.lang),
+            t('admin_password', self.lang) + ":",
+            show='*', parent=self.top
+        )
+        if not password:
+            return
+
+        if not self.current_user.check_password(password):
+            messagebox.showerror(t('app_name', self.lang), t('incorrect_password', self.lang))
+            return
+
+        self.session.delete(self.user)
+        self.session.commit()
+        messagebox.showinfo(t('app_name', self.lang), t('user_deleted', self.lang))
         self.refresh_callback()
         self.top.destroy()
 
 
 class ProfileDialog:
-    """User profile dialog"""
-    def __init__(self, parent, session, uploads_dir, main_app):
+    def __init__(self, parent, session, uploads_dir, lang, main_app):
         self.session = session
         self.uploads_dir = uploads_dir
-        self.main_app = main_app
         self.user = main_app.current_user
+        self.lang = lang
+        self.main_app = main_app
         self.profile_picture_path = None
 
         self.top = tk.Toplevel(parent)
-        self.top.title("My Profile")
-        self.top.geometry("500x600")
-        self.top.configure(bg=WHITE)
+        self.top.title(t('edit_profile', lang) + " - Jesus Projekt Erfurt")
+        self.top.geometry("550x650")
+        self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
+
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.top.iconbitmap(icon_path)
+        except Exception:
+            pass
 
         self.build_ui()
 
     def build_ui(self):
-        tk.Label(self.top, text="My Profile", font=("Segoe UI", 16, "bold"),
-                bg=WHITE, fg=PRIMARY).pack(pady=20)
+        main = tk.Frame(self.top, bg=BG)
+        main.pack(fill='both', expand=True, padx=20, pady=20)
 
-        form = tk.Frame(self.top, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30)
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=1, highlightbackground='#e0e0e0')
+        card.pack(fill='both', expand=True)
+
+        header = tk.Frame(card, bg=WHITE)
+        header.pack(fill='x', padx=25, pady=(20, 0))
+        tk.Label(header, text=f"👤 {t('edit_profile', self.lang)}",
+                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
+
+        form = tk.Frame(card, bg=WHITE)
+        form.pack(fill='both', expand=True, padx=25, pady=20)
 
         self.username_var = tk.StringVar(value=self.user.username)
         self.email_var = tk.StringVar(value=self.user.email)
@@ -914,46 +1544,62 @@ class ProfileDialog:
         self.last_name_var = tk.StringVar(value=self.user.last_name or '')
 
         fields = [
-            ("Username *", self.username_var),
-            ("Email *", self.email_var),
-            ("First Name", self.first_name_var),
-            ("Last Name", self.last_name_var),
+            (t('username', self.lang) + " *", self.username_var),
+            (t('email', self.lang) + " *", self.email_var),
+            (t('first_name', self.lang), self.first_name_var),
+            (t('last_name', self.lang), self.last_name_var),
         ]
 
         for label, var in fields:
-            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-            tk.Entry(form, textvariable=var, font=("Segoe UI", 11)).pack(fill='x', pady=(2, 10), ipady=4)
+            tk.Label(form, text=label, font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+            tk.Entry(form, textvariable=var, font=("Segoe UI", 11), relief='solid', bd=1).pack(fill='x', pady=(2, 5), ipady=4)
 
-        tk.Label(form, text="New Password", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(5, 0))
-        self.password_entry = tk.Entry(form, font=("Segoe UI", 11), show='*')
-        self.password_entry.pack(fill='x', pady=(2, 5), ipady=4)
-        tk.Label(form, text="Leave blank to keep current", font=("Segoe UI", 8),
-                bg=WHITE, fg=TEXT).pack(anchor='w')
+        tk.Label(form, text=t('new_password', self.lang), font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x', pady=(8, 0))
+        self.password_entry = tk.Entry(form, font=("Segoe UI", 11), show='*', relief='solid', bd=1)
+        self.password_entry.pack(fill='x', pady=(2, 2), ipady=4)
+        tk.Label(form, text=t('leave_blank_no_change', self.lang),
+                font=("Segoe UI", 8), bg=WHITE, fg=TEXT).pack(anchor='w', pady=(0, 5))
 
         # Profile picture
         pic_frame = tk.Frame(form, bg=WHITE)
-        pic_frame.pack(fill='x', pady=10)
-        self.pic_label = tk.Label(pic_frame, text="No picture", bg='#dddddd', width=10, height=5)
-        self.pic_label.pack(side='left', padx=(0, 10))
-        tk.Button(pic_frame, text="Upload Photo", command=self.upload_photo).pack(side='left')
+        pic_frame.pack(fill='x', pady=15)
+        self.pic_label = tk.Label(pic_frame, text="👤", font=("Segoe UI Emoji", 30),
+                                  bg='#e9ecef', width=6, height=3)
+        self.pic_label.pack(side='left', padx=(0, 15))
 
         if self.user.profile_picture:
             self.load_user_picture()
+            tk.Button(pic_frame, text=f"🔄 Change {t('profile_picture', self.lang)}",
+                     font=("Segoe UI", 10),
+                     bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     command=self.upload_photo).pack(side='left', pady=20, ipadx=10, ipady=5)
+        else:
+            tk.Button(pic_frame, text=f"📁 Upload {t('profile_picture', self.lang)}",
+                     font=("Segoe UI", 10),
+                     bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     command=self.upload_photo).pack(side='left', pady=20, ipadx=10, ipady=5)
 
         # Buttons
-        btn_frame = tk.Frame(self.top, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=20)
+        btn_frame = tk.Frame(card, bg=WHITE)
+        btn_frame.pack(fill='x', padx=25, pady=(0, 20))
 
-        tk.Button(btn_frame, text="Save", font=("Segoe UI", 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2',
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        tk.Button(btn_frame, text="Cancel", font=("Segoe UI", 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2',
+
+        tk.Button(btn_frame, text=t('cancel', self.lang),
+                 font=("Segoe UI", 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def upload_photo(self):
+        from tkinter import filedialog
         filename = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.gif")])
         if filename:
+            if os.path.getsize(filename) > 5 * 1024 * 1024:
+                messagebox.showerror(t('app_name', self.lang), "File too large (max 5MB)")
+                return
             self.profile_picture_path = filename
             try:
                 img = Image.open(filename)
@@ -995,62 +1641,91 @@ class ProfileDialog:
             self.user.profile_picture = filename
 
         self.session.commit()
-        messagebox.showinfo("Success", "Profile updated successfully!")
+        messagebox.showinfo(t('app_name', self.lang), t('user_updated', self.lang))
         self.top.destroy()
 
 
 class GreetingDialog:
-    """Send birthday greetings dialog"""
     def __init__(self, parent, session, clients, main_app):
         self.session = session
         self.clients = clients
         self.main_app = main_app
+        self.lang = main_app.lang
 
         self.top = tk.Toplevel(parent)
-        self.top.title("Send Birthday Greetings")
-        self.top.geometry("600x500")
-        self.top.configure(bg=WHITE)
+        self.top.title(t('send_greetings', self.lang) + " - Jesus Projekt Erfurt")
+        self.top.geometry("650x550")
+        self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
+
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.top.iconbitmap(icon_path)
+        except Exception:
+            pass
 
         self.build_ui()
 
     def build_ui(self):
-        tk.Label(self.top, text="Send Birthday Greetings", font=("Segoe UI", 16, "bold"),
-                bg=WHITE, fg=PRIMARY).pack(pady=20)
+        main = tk.Frame(self.top, bg=BG)
+        main.pack(fill='both', expand=True, padx=20, pady=20)
 
-        tk.Label(self.top, text=f"Recipients: {len(self.clients)}",
-                font=("Segoe UI", 10), bg=WHITE, fg=TEXT).pack()
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=1, highlightbackground='#e0e0e0')
+        card.pack(fill='both', expand=True)
 
-        form = tk.Frame(self.top, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30, pady=10)
+        header = tk.Frame(card, bg=WHITE)
+        header.pack(fill='x', padx=25, pady=(20, 10))
+        tk.Label(header, text=f"📧 {t('send_greetings', self.lang)}",
+                font=("Segoe UI", 16, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
 
-        tk.Label(form, text="Subject", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x')
-        self.subject_entry = tk.Entry(form, font=("Segoe UI", 11))
-        self.subject_entry.insert(0, "Happy Birthday, {name}!")
+        # Info
+        tk.Label(card, text=f"ℹ️ {t('placeholders_info', self.lang) if 'placeholders_info' in TRANSLATIONS.get(self.lang, {}) else 'Use {name} for client name'}",
+                font=("Segoe UI", 9), bg='#fff3cd', fg='#856404', anchor='w').pack(fill='x', padx=25, pady=(0, 10))
+
+        form = tk.Frame(card, bg=WHITE)
+        form.pack(fill='both', expand=True, padx=25)
+
+        tk.Label(form, text=t('subject', self.lang), font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x')
+        self.subject_entry = tk.Entry(form, font=("Segoe UI", 11), relief='solid', bd=1)
+        self.subject_entry.insert(0, t('greeting_subject', self.lang).replace('{name}', '[Name]'))
         self.subject_entry.pack(fill='x', pady=(2, 10), ipady=4)
 
-        tk.Label(form, text="Message", font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x')
-        self.message_text = tk.Text(form, font=("Segoe UI", 10), height=12, wrap='word')
-        self.message_text.insert('1.0',
-            "Dear {name},\n\nWishing you a wonderful birthday! May this special day bring you joy and happiness.\n\nFrom all of us at Jesus Projekt Erfurt!\n\nBest regards,\nJesus Projekt Erfurt Team")
+        tk.Label(form, text=t('message', self.lang), font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(fill='x')
+        self.message_text = tk.Text(form, font=("Segoe UI", 10), height=10, wrap='word', relief='solid', bd=1)
+        self.message_text.insert('1.0', t('greeting_message', self.lang).replace('{name}', '[Name]'))
         self.message_text.pack(fill='both', expand=True, pady=(2, 10))
 
-        btn_frame = tk.Frame(self.top, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=20)
+        # Recipients
+        rec_frame = tk.Frame(card, bg=WHITE)
+        rec_frame.pack(fill='x', padx=25, pady=(0, 10))
+        tk.Label(rec_frame, text=f"{t('recipients', self.lang)} ({len(self.clients)}):",
+                font=("Segoe UI", 10), bg=WHITE, anchor='w').pack(anchor='w')
+        rec_text = tk.Text(rec_frame, font=("Segoe UI", 9), height=3, bg='#f8f9fa', relief='solid', bd=1)
+        recipients_str = ", ".join(f"{c.first_name} {c.last_name} <{c.email}>" for c in self.clients)
+        rec_text.insert('1.0', recipients_str)
+        rec_text.config(state='disabled')
+        rec_text.pack(fill='x', pady=(2, 0))
 
-        tk.Button(btn_frame, text="Send", font=("Segoe UI", 11, "bold"),
-                 bg='#28a745', fg=WHITE, relief='flat', cursor='hand2',
+        # Buttons
+        btn_frame = tk.Frame(card, bg=WHITE)
+        btn_frame.pack(fill='x', padx=25, pady=(0, 20))
+
+        tk.Button(btn_frame, text=f"📤 {t('send_to_all', self.lang)}",
+                 font=("Segoe UI", 11, "bold"),
+                 bg=SUCCESS, fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.send).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        tk.Button(btn_frame, text="Cancel", font=("Segoe UI", 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2',
+
+        tk.Button(btn_frame, text=t('cancel', self.lang),
+                 font=("Segoe UI", 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
                  command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def send(self):
         subject_tmpl = self.subject_entry.get()
         message_tmpl = self.message_text.get('1.0', 'end-1c')
 
-        # Get settings
         def get_setting(key, default=''):
             s = self.session.query(Settings).filter_by(key=key).first()
             return s.value if s else default
@@ -1063,7 +1738,7 @@ class GreetingDialog:
         mail_sender = get_setting('mail_default_sender', mail_username)
 
         if not mail_username or not mail_password:
-            messagebox.showerror("Error", "Email not configured. Please set up email in Settings.")
+            messagebox.showerror(t('app_name', self.lang), t('mail_not_configured', self.lang))
             return
 
         sent = 0
@@ -1092,11 +1767,11 @@ class GreetingDialog:
                     except Exception as e:
                         errors.append(f"{client.first_name} {client.last_name}: {str(e)}")
         except Exception as e:
-            messagebox.showerror("Error", f"SMTP connection failed: {str(e)}")
+            messagebox.showerror(t('app_name', self.lang), f"SMTP Error: {str(e)}")
             return
 
-        result = f"Sent: {sent}\nFailed: {len(errors)}"
+        result = f"Sent: {sent}/{len(self.clients)}"
         if errors:
             result += "\n\nErrors:\n" + "\n".join(errors[:5])
-        messagebox.showinfo("Complete", result)
+        messagebox.showinfo(t('app_name', self.lang), result)
         self.top.destroy()

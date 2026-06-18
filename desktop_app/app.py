@@ -14,20 +14,19 @@ if getattr(sys, 'frozen', False):
 else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Determine database location
-# First try: same folder as exe
+# Database locations
 EXE_DB_PATH = os.path.join(APP_DIR, 'birthday_monitoring.db')
-
-# Fallback: AppData/Roaming/Jesus Projekt Erfurt
 APPDATA_DIR = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Jesus Projekt Erfurt')
 APPDATA_DB_PATH = os.path.join(APPDATA_DIR, 'birthday_monitoring.db')
 
 UPLOADS_DIR = os.path.join(APP_DIR, 'uploads')
 APPDATA_UPLOADS = os.path.join(APPDATA_DIR, 'uploads')
 
+LOGO_URL = 'https://jesus-projekt-erfurt.de/wp-content/uploads/2017/03/Jesus-Projekt-Erfurt-Logo.jpg'
+LOCAL_LOGO = os.path.join(APP_DIR, 'logo.jpg')
+
 
 def can_write_to(directory):
-    """Test if we can write to the given directory"""
     try:
         test_file = os.path.join(directory, '.write_test')
         with open(test_file, 'w') as f:
@@ -39,7 +38,6 @@ def can_write_to(directory):
 
 
 def get_db_path():
-    """Try to create db in exe folder, fallback to AppData"""
     if can_write_to(APP_DIR):
         return EXE_DB_PATH, APP_DIR, UPLOADS_DIR
     else:
@@ -49,29 +47,33 @@ def get_db_path():
 
 
 def get_icon_path():
-    """Get the icon file path"""
-    if getattr(sys, 'frozen', False):
-        # When running as exe, look for icon in the same folder
-        icon_path = os.path.join(APP_DIR, 'app.ico')
-        if os.path.exists(icon_path):
-            return icon_path
-        # Also check _MEIPASS for PyInstaller
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, 'app.ico')
-    # When running as script
-    return os.path.join(APP_DIR, 'app.ico')
+    icon_path = os.path.join(APP_DIR, 'app.ico')
+    if os.path.exists(icon_path):
+        return icon_path
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, 'app.ico')
+    return icon_path
+
+
+def get_logo_path():
+    if os.path.exists(LOCAL_LOGO):
+        return LOCAL_LOGO
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(LOGO_URL, LOCAL_LOGO)
+        return LOCAL_LOGO
+    except Exception:
+        return None
 
 
 class LoadingScreen:
-    """Nice looking loading screen shown on startup"""
-
     def __init__(self, root):
         self.root = root
         self.root.title("Jesus Projekt Erfurt")
-        self.root.geometry("500x350")
+        self.root.geometry("500x400")
         self.root.resizable(False, False)
+        self.root.configure(bg=BG)
 
-        # Set icon
         try:
             icon_path = get_icon_path()
             if os.path.exists(icon_path):
@@ -79,77 +81,44 @@ class LoadingScreen:
         except Exception:
             pass
 
-        # Center on screen
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        x = (screen_width - 500) // 2
-        y = (screen_height - 350) // 2
-        self.root.geometry(f"500x350+{x}+{y}")
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() - 500) // 2
+        y = (self.root.winfo_screenheight() - 400) // 2
+        self.root.geometry(f"500x400+{x}+{y}")
 
-        # Background
-        self.root.configure(bg='#ff8e00')
+        main = tk.Frame(self.root, bg=BG)
+        main.pack(expand=True, fill='both')
+
+        card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=0)
+        card.place(relx=0.5, rely=0.5, anchor='center', width=400, height=320)
 
         # Logo
-        self.logo_label = tk.Label(
-            root,
-            text="🎂",
-            font=("Segoe UI Emoji", 48),
-            bg='#ff8e00',
-            fg='white'
-        )
-        self.logo_label.pack(pady=(40, 10))
+        logo_img = get_logo_path()
+        if logo_img:
+            try:
+                from PIL import Image, ImageTk
+                img = Image.open(logo_img)
+                img.thumbnail((150, 150))
+                self.logo_photo = ImageTk.PhotoImage(img)
+                tk.Label(card, image=self.logo_photo, bg=WHITE).pack(pady=(30, 10))
+            except Exception:
+                tk.Label(card, text="🎂", font=("Segoe UI Emoji", 48), bg=WHITE, fg=PRIMARY).pack(pady=(30, 10))
+        else:
+            tk.Label(card, text="🎂", font=("Segoe UI Emoji", 48), bg=WHITE, fg=PRIMARY).pack(pady=(30, 10))
 
-        # App name
-        self.title_label = tk.Label(
-            root,
-            text="Jesus Projekt Erfurt",
-            font=("Segoe UI", 22, "bold"),
-            bg='#ff8e00',
-            fg='white'
-        )
-        self.title_label.pack()
+        tk.Label(card, text="Jesus Projekt Erfurt", font=("Segoe UI", 18, "bold"),
+                bg=WHITE, fg=PRIMARY).pack()
+        tk.Label(card, text="Birthday Monitoring", font=("Segoe UI", 11),
+                bg=WHITE, fg=TEXT).pack(pady=(0, 20))
 
-        # Subtitle
-        self.subtitle_label = tk.Label(
-            root,
-            text="Birthday Monitoring",
-            font=("Segoe UI", 12),
-            bg='#ff8e00',
-            fg='white'
-        )
-        self.subtitle_label.pack(pady=(0, 30))
-
-        # Status label
-        self.status_label = tk.Label(
-            root,
-            text="Loading...",
-            font=("Segoe UI", 10),
-            bg='#ff8e00',
-            fg='white'
-        )
+        self.status_label = tk.Label(card, text="Loading...", font=("Segoe UI", 10),
+                                     bg=WHITE, fg=TEXT)
         self.status_label.pack(pady=(0, 10))
 
-        # Progress bar
-        self.progress = ttk.Progressbar(
-            root,
-            length=400,
-            mode='determinate',
-            style="orange.Horizontal.TProgressbar"
-        )
+        self.progress = ttk.Progressbar(card, length=300, mode='determinate')
         self.progress.pack(pady=(0, 20))
 
-        # Style for progress bar
-        style = ttk.Style()
-        style.theme_use('default')
-        style.configure("orange.Horizontal.TProgressbar",
-                        background='white',
-                        troughcolor='#e67e00',
-                        borderwidth=0,
-                        lightcolor='white',
-                        darkcolor='white')
-
     def update_status(self, text, progress=None):
-        """Update loading status text and progress"""
         self.status_label.config(text=text)
         if progress is not None:
             self.progress['value'] = progress
@@ -157,8 +126,15 @@ class LoadingScreen:
         self.root.update()
 
 
+# Color scheme (same as main_app)
+PRIMARY = '#ff8e00'
+PRIMARY_DARK = '#e67e00'
+TEXT = '#666666'
+WHITE = '#ffffff'
+BG = '#f7f7f7'
+
+
 def show_error_and_exit(message, details=""):
-    """Show error dialog and exit"""
     try:
         root = tk.Tk()
         root.withdraw()
@@ -175,9 +151,7 @@ def show_error_and_exit(message, details=""):
 
 
 def run_app():
-    """Main entry point"""
     try:
-        # Show loading screen
         root = tk.Tk()
         loading = LoadingScreen(root)
 
@@ -185,11 +159,9 @@ def run_app():
             try:
                 import time
 
-                # Step 1: Initialize
                 loading.update_status("Initializing application...", 10)
                 time.sleep(0.3)
 
-                # Step 2: Check database location
                 loading.update_status("Checking database location...", 30)
                 time.sleep(0.3)
 
@@ -197,22 +169,17 @@ def run_app():
                 os.makedirs(os.path.dirname(db_path), exist_ok=True)
                 os.makedirs(uploads_dir, exist_ok=True)
 
-                # Step 3: Load modules
                 loading.update_status("Loading modules...", 50)
                 time.sleep(0.3)
 
-                # Step 4: Create app
                 loading.update_status("Starting application...", 80)
                 time.sleep(0.3)
 
-                # Step 5: Ready
                 loading.update_status("Ready!", 100)
                 time.sleep(0.5)
 
-                # Close loading screen
                 root.destroy()
 
-                # Import and start main app
                 from main_app import LoginWindow
                 main_root = tk.Tk()
                 LoginWindow(main_root, db_path, db_dir, uploads_dir)

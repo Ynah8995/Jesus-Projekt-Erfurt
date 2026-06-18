@@ -1,11 +1,12 @@
 """
 Jesus Projekt Erfurt - Birthday Monitoring
 Desktop Application Launcher
-Runs the Flask web app in a native webview window - exact same UI as run.bat
+Runs the Flask web app and opens it in a native window.
 """
 import os
 import sys
 import shutil
+import subprocess
 import threading
 import time
 import socket
@@ -17,7 +18,6 @@ from PIL import Image, ImageTk
 # Get the directory where the exe is located
 if getattr(sys, 'frozen', False):
     APP_DIR = os.path.dirname(sys.executable)
-    # PyInstaller extracts data files to _MEIPASS
     if hasattr(sys, '_MEIPASS'):
         BASE_DIR = sys._MEIPASS
     else:
@@ -65,11 +65,13 @@ def get_db_path():
 
 
 def get_icon_path():
+    if hasattr(sys, '_MEIPASS'):
+        meipass_icon = os.path.join(sys._MEIPASS, 'app.ico')
+        if os.path.exists(meipass_icon):
+            return meipass_icon
     icon_path = os.path.join(APP_DIR, 'app.ico')
     if os.path.exists(icon_path):
         return icon_path
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, 'app.ico')
     return icon_path
 
 
@@ -79,24 +81,30 @@ def find_free_port():
         return s.getsockname()[1]
 
 
+def get_logo_path():
+    """Get the local logo file path"""
+    # Check _MEIPASS first (bundled in exe)
+    if hasattr(sys, '_MEIPASS'):
+        bundled = os.path.join(sys._MEIPASS, 'logo.jpg')
+        if os.path.exists(bundled):
+            return bundled
+    # Check APP_DIR
+    local = os.path.join(APP_DIR, 'logo.jpg')
+    if os.path.exists(local):
+        return local
+    return None
+
+
 def get_logo_image(size=(150, 80)):
-    logo_path = os.path.join(APP_DIR, 'logo.jpg')
-    if os.path.exists(logo_path):
+    """Load and resize the logo image"""
+    logo_path = get_logo_path()
+    if logo_path:
         try:
             img = Image.open(logo_path)
             img.thumbnail(size, Image.LANCZOS)
             return ImageTk.PhotoImage(img)
         except Exception:
             pass
-    if hasattr(sys, '_MEIPASS'):
-        logo_path = os.path.join(sys._MEIPASS, 'logo.jpg')
-        if os.path.exists(logo_path):
-            try:
-                img = Image.open(logo_path)
-                img.thumbnail(size, Image.LANCZOS)
-                return ImageTk.PhotoImage(img)
-            except Exception:
-                pass
     return None
 
 
@@ -142,12 +150,13 @@ class LoadingScreen:
         card = tk.Frame(main, bg=WHITE, bd=0, highlightthickness=0)
         card.place(relx=0.5, rely=0.5, anchor='center', width=420, height=340)
 
-        self.logo_img = get_logo_image((160, 160))
+        # Logo - use the official Jesus Projekt Erfurt logo
+        self.logo_img = get_logo_image((200, 100))
         if self.logo_img:
-            tk.Label(card, image=self.logo_img, bg=WHITE).pack(pady=(35, 15))
+            tk.Label(card, image=self.logo_img, bg=WHITE).pack(pady=(30, 10))
         else:
             tk.Label(card, text="🎂", font=("Segoe UI Emoji", 56),
-                    bg=WHITE, fg=PRIMARY).pack(pady=(35, 15))
+                    bg=WHITE, fg=PRIMARY).pack(pady=(30, 10))
 
         tk.Label(card, text="Jesus Projekt Erfurt", font=("Segoe UI", 20, "bold"),
                 bg=WHITE, fg=PRIMARY).pack()
@@ -188,23 +197,33 @@ class LoadingScreen:
             pass
 
 
-def start_flask_server(port, db_path, uploads_dir):
+def start_flask_server(port, db_path, uploads_dir, ready_event):
     """Start the Flask server in a background thread"""
-    # Add webapp dir to path so 'app' module can be found
-    if WEBAPP_DIR not in sys.path:
-        sys.path.insert(0, WEBAPP_DIR)
+    try:
+        # Add webapp dir to path
+        if WEBAPP_DIR not in sys.path:
+            sys.path.insert(0, WEBAPP_DIR)
 
-    # Set environment variables
-    os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
-    os.environ['UPLOADS_DIR'] = uploads_dir
+        # Set environment variables
+        os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
+        os.environ['UPLOADS_DIR'] = uploads_dir
 
-    # Import and run Flask app
-    from app import create_app
-    flask_app = create_app()
-    flask_app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False)
+        # Import and run Flask app
+        from app import create_app
+        flask_app = create_app()
+
+        # Signal that server is ready
+        ready_event.set()
+
+        flask_app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False)
+    except Exception as e:
+        ready_event.set()
+        print(f"Server error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
-def wait_for_server(port, timeout=30):
+def wait_for_server(port, timeout=15):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
@@ -214,6 +233,39 @@ def wait_for_server(port, timeout=30):
                 return True
         except (socket.error, ConnectionRefusedError):
             time.sleep(0.1)
+    return False
+
+
+def find_chrome_exe():
+    """Find Chrome or Edge executable for app mode"""
+    paths = [
+        os.path.expandvars(r'%ProgramFiles%\Google\Chrome\Application\chrome.exe'),
+        os.path.expandvars(r'%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe'),
+        os.path.expandvars(r'%LocalAppData%\Google\Chrome\Application\chrome.exe'),
+        os.path.expandvars(r'%ProgramFiles%\Microsoft\Edge\Application\msedge.exe'),
+        os.path.expandvars(r'%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe'),
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def open_native_window(url):
+    """Open URL in a native-looking window"""
+    # Try Chrome/Edge app mode (gives native window without browser UI)
+    chrome = find_chrome_exe()
+    if chrome:
+        try:
+            subprocess.Popen([
+                chrome,
+                f'--app={url}',
+                '--window-size=1300,800',
+                '--window-position=100,100',
+            ])
+            return True
+        except Exception:
+            pass
     return False
 
 
@@ -269,56 +321,44 @@ def main():
 
         # Find free port
         port = find_free_port()
+        ready_event = threading.Event()
 
         # Start Flask server in background thread
         loading.update_status("Starting server...", 70)
         server_thread = threading.Thread(
             target=start_flask_server,
-            args=(port, db_path, uploads_dir),
+            args=(port, db_path, uploads_dir, ready_event),
             daemon=True
         )
         server_thread.start()
 
-        # Wait for server
-        if not wait_for_server(port, timeout=15):
+        # Wait for server to be ready
+        loading.update_status("Waiting for server...", 85)
+        if not wait_for_server(port, timeout=20):
             loading.close()
             messagebox.showerror("Jesus Projekt Erfurt",
                                "Failed to start the server. Please try again.")
             return
 
-        loading.update_status("Ready!", 100)
+        loading.update_status("Opening application...", 95)
         time.sleep(0.3)
         loading.close()
 
-        # Open in webview (native window with web content)
+        # Open in native window
         url = f'http://127.0.0.1:{port}'
 
-        import webview
+        # Try Chrome/Edge app mode first (native window)
+        if not open_native_window(url):
+            # Fallback to default browser
+            import webbrowser
+            webbrowser.open(url)
 
-        # Determine icon path
-        icon_path = get_icon_path()
-
-        window = webview.create_window(
-            title='Jesus Projekt Erfurt - Birthday Monitoring',
-            url=url,
-            width=1300,
-            height=800,
-            min_size=(900, 600),
-            resizable=True,
-            text_select=True,
-            easy_drag=False,
-            confirm_close=False
-        )
-
-        # Show first-run notice
-        if is_first_run:
-            def show_notice():
-                webview.windows[0].evaluate_js(
-                    f"alert('Welcome!\\n\\nDefault admin account created:\\n\\nUsername: admin\\nPassword: admin123\\n\\nPlease change your password after logging in.')"
-                )
-            window.events.loaded += show_notice
-
-        webview.start()
+        # Keep the process alive while server runs
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
 
     except Exception as e:
         error_msg = f"Failed to start application:\n\n{str(e)}"

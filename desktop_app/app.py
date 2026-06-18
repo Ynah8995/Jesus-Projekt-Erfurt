@@ -26,8 +26,10 @@ else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
     BASE_DIR = APP_DIR
 
-# Web app is bundled in the exe
-WEBAPP_DIR = os.path.join(BASE_DIR, 'webapp')
+# Web app is bundled at the root of the bundle (via --add-data 'webapp/app;app')
+# So 'app' is at BASE_DIR/app/
+# We add BASE_DIR to sys.path so 'import app' works
+WEBAPP_DIR = BASE_DIR
 
 # Database locations
 EXE_DB_PATH = os.path.join(APP_DIR, 'birthday_monitoring.db')
@@ -196,8 +198,12 @@ class LoadingScreen:
 def start_flask_server(port, db_path, uploads_dir, error_event):
     """Start the Flask server in a background thread"""
     try:
-        # Add webapp dir to path
+        # Make sure WEBAPP_DIR is at the front of sys.path
         if WEBAPP_DIR not in sys.path:
+            sys.path.insert(0, WEBAPP_DIR)
+        else:
+            # Move it to the front
+            sys.path.remove(WEBAPP_DIR)
             sys.path.insert(0, WEBAPP_DIR)
 
         # Set environment variables
@@ -237,8 +243,12 @@ def create_first_admin_if_needed(db_path):
     from datetime import datetime
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    # Import models from the bundled webapp
-    sys.path.insert(0, WEBAPP_DIR)
+
+    # Make sure WEBAPP_DIR is at the front of sys.path
+    if WEBAPP_DIR not in sys.path:
+        sys.path.insert(0, WEBAPP_DIR)
+
+    # Import models from the webapp
     from app.models import Base, User
 
     engine = create_engine(f'sqlite:///{db_path}', echo=False)

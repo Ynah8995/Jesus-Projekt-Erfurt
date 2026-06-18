@@ -86,6 +86,9 @@ def send_greetings():
     mail_default_sender = Settings.get('mail_default_sender', mail_username)
     
     data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Invalid request'}), 400
+    
     subject_template = data.get('subject', t('greeting_subject', lang))
     message_template = data.get('message', t('greeting_message', lang))
     

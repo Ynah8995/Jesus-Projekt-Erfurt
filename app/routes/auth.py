@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from ..models import db, User
 from functools import wraps
+from urllib.parse import urlparse
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 login_manager = None
@@ -49,6 +50,8 @@ def login():
             db.session.commit()
             session['language'] = user.language or 'en'
             next_page = request.args.get('next')
+            if next_page and urlparse(next_page).netloc:
+                next_page = None
             return redirect(next_page or url_for('dashboard.index'))
         from ..translations import t
         flash(t('login_error', session.get('language', 'en')), 'error')

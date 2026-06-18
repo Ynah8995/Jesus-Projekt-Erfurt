@@ -48,30 +48,5 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
-        _create_default_admin(app)
 
     return app
-
-
-def _create_default_admin(app):
-    with app.app_context():
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(
-                username='admin',
-                email='admin@jesus-projekt.de',
-                first_name='Admin',
-                last_name='User',
-                role='admin',
-                is_active=True,
-                language='en'
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("=" * 50)
-            print("Default admin user created:")
-            print("  Username: admin")
-            print("  Password: admin123")
-            print("  IMPORTANT: Change this password after first login!")
-            print("=" * 50)

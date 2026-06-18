@@ -56,6 +56,10 @@ cmd = [
     '--collect-all', 'sqlalchemy',
     '--collect-all', 'webview',
     '--collect-all', 'PIL',
+    '--hidden-import', 'smtplib',
+    '--hidden-import', 'email.mime.text',
+    '--hidden-import', 'email.mime.multipart',
+    '--hidden-import', 'email.mime.base',
     '--noconfirm', '--clean',
     'launcher.py'
 ]

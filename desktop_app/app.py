@@ -4,7 +4,7 @@ Main entry point with loading screen
 """
 import os
 import sys
-import threading
+import traceback
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -26,16 +26,6 @@ UPLOADS_DIR = os.path.join(APP_DIR, 'uploads')
 APPDATA_UPLOADS = os.path.join(APPDATA_DIR, 'uploads')
 
 
-def get_db_path():
-    """Try to create db in exe folder, fallback to AppData"""
-    if can_write_to(APP_DIR):
-        return EXE_DB_PATH, APP_DIR, UPLOADS_DIR
-    else:
-        os.makedirs(APPDATA_DIR, exist_ok=True)
-        os.makedirs(APPDATA_UPLOADS, exist_ok=True)
-        return APPDATA_DB_PATH, APPDATA_DIR, APPDATA_UPLOADS
-
-
 def can_write_to(directory):
     """Test if we can write to the given directory"""
     try:
@@ -48,6 +38,30 @@ def can_write_to(directory):
         return False
 
 
+def get_db_path():
+    """Try to create db in exe folder, fallback to AppData"""
+    if can_write_to(APP_DIR):
+        return EXE_DB_PATH, APP_DIR, UPLOADS_DIR
+    else:
+        os.makedirs(APPDATA_DIR, exist_ok=True)
+        os.makedirs(APPDATA_UPLOADS, exist_ok=True)
+        return APPDATA_DB_PATH, APPDATA_DIR, APPDATA_UPLOADS
+
+
+def get_icon_path():
+    """Get the icon file path"""
+    if getattr(sys, 'frozen', False):
+        # When running as exe, look for icon in the same folder
+        icon_path = os.path.join(APP_DIR, 'app.ico')
+        if os.path.exists(icon_path):
+            return icon_path
+        # Also check _MEIPASS for PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, 'app.ico')
+    # When running as script
+    return os.path.join(APP_DIR, 'app.ico')
+
+
 class LoadingScreen:
     """Nice looking loading screen shown on startup"""
 
@@ -57,15 +71,20 @@ class LoadingScreen:
         self.root.geometry("500x350")
         self.root.resizable(False, False)
 
+        # Set icon
+        try:
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         # Center on screen
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         x = (screen_width - 500) // 2
         y = (screen_height - 350) // 2
         self.root.geometry(f"500x350+{x}+{y}")
-
-        # Remove window decorations for a cleaner look (optional)
-        # self.root.overrideredirect(True)
 
         # Background
         self.root.configure(bg='#ff8e00')
@@ -138,50 +157,77 @@ class LoadingScreen:
         self.root.update()
 
 
-def run_loading_and_start():
-    """Show loading screen, then start the app"""
-    root = tk.Tk()
-    loading = LoadingScreen(root)
-
-    def do_loading():
-        # Step 1: Initialize
-        loading.update_status("Initializing application...", 10)
-        import time
-        time.sleep(0.3)
-
-        # Step 2: Check database
-        loading.update_status("Checking database...", 30)
-        time.sleep(0.3)
-
-        db_path, db_dir, uploads_dir = get_db_path()
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        os.makedirs(uploads_dir, exist_ok=True)
-
-        # Step 3: Load models
-        loading.update_status("Loading modules...", 50)
-        time.sleep(0.3)
-
-        # Step 4: Create app
-        loading.update_status("Starting application...", 80)
-        time.sleep(0.3)
-
-        # Step 5: Ready
-        loading.update_status("Ready!", 100)
-        time.sleep(0.5)
-
-        # Close loading screen and start main app
+def show_error_and_exit(message, details=""):
+    """Show error dialog and exit"""
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        full_message = message
+        if details:
+            full_message += "\n\nDetails:\n" + details
+        messagebox.showerror("Jesus Projekt Erfurt - Error", full_message)
         root.destroy()
+    except Exception:
+        print(message)
+        if details:
+            print(details)
+    sys.exit(1)
 
-        # Import here to avoid slowing down loading screen
-        from main_app import MainApp
-        main_root = tk.Tk()
-        MainApp(main_root, db_path, db_dir, uploads_dir)
-        main_root.mainloop()
 
-    # Run loading in main thread (fast operations only)
-    root.after(100, do_loading)
-    root.mainloop()
+def run_app():
+    """Main entry point"""
+    try:
+        # Show loading screen
+        root = tk.Tk()
+        loading = LoadingScreen(root)
+
+        def do_loading():
+            try:
+                import time
+
+                # Step 1: Initialize
+                loading.update_status("Initializing application...", 10)
+                time.sleep(0.3)
+
+                # Step 2: Check database location
+                loading.update_status("Checking database location...", 30)
+                time.sleep(0.3)
+
+                db_path, db_dir, uploads_dir = get_db_path()
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                os.makedirs(uploads_dir, exist_ok=True)
+
+                # Step 3: Load modules
+                loading.update_status("Loading modules...", 50)
+                time.sleep(0.3)
+
+                # Step 4: Create app
+                loading.update_status("Starting application...", 80)
+                time.sleep(0.3)
+
+                # Step 5: Ready
+                loading.update_status("Ready!", 100)
+                time.sleep(0.5)
+
+                # Close loading screen
+                root.destroy()
+
+                # Import and start main app
+                from main_app import LoginWindow
+                main_root = tk.Tk()
+                LoginWindow(main_root, db_path, db_dir, uploads_dir)
+                main_root.mainloop()
+
+            except Exception as e:
+                root.destroy()
+                show_error_and_exit("Failed to start application", traceback.format_exc())
+
+        root.after(100, do_loading)
+        root.mainloop()
+
+    except Exception as e:
+        show_error_and_exit("Unexpected error", traceback.format_exc())
 
 
 if __name__ == '__main__':
-    run_loading_and_start()
+    run_app()

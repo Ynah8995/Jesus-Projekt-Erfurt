@@ -39,6 +39,15 @@ class LoginWindow:
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
+        # Set icon
+        try:
+            from app import get_icon_path
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         # Center
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 450) // 2
@@ -149,6 +158,15 @@ class MainApp:
         self.root.title("Jesus Projekt Erfurt - Birthday Monitoring")
         self.root.geometry("1200x700")
         self.root.configure(bg=BG)
+
+        # Set icon
+        try:
+            from app import get_icon_path
+            icon_path = get_icon_path()
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except Exception:
+            pass
 
         # Center
         self.root.update_idletasks()

@@ -52,7 +52,7 @@ cmd = [
     '--collect-all', 'webview',
     '--collect-all', 'PIL',
     '--noconfirm', '--clean',
-    'app.py'
+    'launcher.py'
 ]
 
 print("Command:", ' '.join(cmd))

@@ -92,6 +92,37 @@ class LoadingScreen:
             pass
 
 
+def ensure_first_run_admin(db_path):
+    """Create default admin user on first run (when no users exist)"""
+    from datetime import datetime
+    from models import init_db, User
+
+    engine, session = init_db(db_path)
+
+    # Check if any user exists
+    existing = session.query(User).first()
+    if existing:
+        session.close()
+        return False  # Not first run
+
+    # Create default admin
+    admin = User(
+        username='admin',
+        email='admin@jesus-projekt.de',
+        first_name='Admin',
+        last_name='User',
+        role='admin',
+        is_active=True,
+        language='en'
+    )
+    admin.set_password('admin123')
+    admin.created_at = datetime.utcnow()
+    session.add(admin)
+    session.commit()
+    session.close()
+    return True  # First run, admin created
+
+
 def main():
     """Main entry point"""
     try:
@@ -104,6 +135,10 @@ def main():
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         os.makedirs(uploads_dir, exist_ok=True)
 
+        # Create default admin on first run
+        loading.update_status("Setting up...", 60)
+        is_first_run = ensure_first_run_admin(db_path)
+
         loading.update_status("Ready!", 100)
         loading.root.update()
 
@@ -111,10 +146,21 @@ def main():
         time.sleep(0.3)
         loading.close()
 
-        # Open login window directly
+        # Open login window
         from windows import LoginWindow
         root = tk.Tk()
         LoginWindow(root, db_path, db_dir, uploads_dir)
+
+        # Show first-run notice after login window is ready
+        if is_first_run:
+            root.after(500, lambda: messagebox.showinfo(
+                "Jesus Projekt Erfurt",
+                "Welcome! Default admin account created:\n\n"
+                "Username: admin\n"
+                "Password: admin123\n\n"
+                "Please change your password after logging in."
+            ))
+
         root.mainloop()
 
     except Exception as e:

@@ -299,10 +299,14 @@ def get_db_path():
 
 def get_icon_path():
     """Get the icon file path"""
+    # When running as exe, icon is bundled inside (_MEIPASS)
+    if hasattr(sys, '_MEIPASS'):
+        meipass_icon = os.path.join(sys._MEIPASS, 'app.ico')
+        if os.path.exists(meipass_icon):
+            return meipass_icon
+    # Otherwise check APP_DIR (dev mode or extracted icon)
     if os.path.exists(ICON_PATH):
         return ICON_PATH
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, 'app.ico')
     return ICON_PATH
 
 

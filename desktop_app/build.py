@@ -34,6 +34,7 @@ cmd = [
     '--windowed',
     '--name', 'Jesus Projekt Erfurt',
     '--icon', 'app.ico',
+    '--add-data', 'app.ico;.',
     '--collect-all', 'PIL',
     '--noconfirm',
     '--clean',

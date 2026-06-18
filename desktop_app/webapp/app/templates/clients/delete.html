@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>{{ t('confirm_delete', lang) }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>{{ t('delete_warning', lang) }}
+                </div>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <p class="mb-1"><strong>{{ t('first_name', lang) }}:</strong> {{ client.first_name }}</p>
+                        <p class="mb-1"><strong>{{ t('last_name', lang) }}:</strong> {{ client.last_name }}</p>
+                        <p class="mb-1"><strong>{{ t('birthday', lang) }}:</strong> {{ client.birthday.strftime('%d.%m.%Y') }}</p>
+                        <p class="mb-0"><strong>{{ t('email', lang) }}:</strong> {{ client.email or '-' }}</p>
+                    </div>
+                </div>
+                <form method="POST">
+                    <div class="mb-4">
+                        <label for="admin_password" class="form-label">{{ t('admin_password', lang) }}</label>
+                        <input type="password" class="form-control" id="admin_password" name="admin_password" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-2"></i>{{ t('delete', lang) }}
+                        </button>
+                        <a href="{{ url_for('clients.list_clients') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>{{ t('back', lang) }}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

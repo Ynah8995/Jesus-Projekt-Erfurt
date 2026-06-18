@@ -97,31 +97,28 @@ def main():
     try:
         # Show loading screen
         loading = LoadingScreen()
-        loading.update_status("Initializing application...", 20)
-        time.sleep(0.3)
+        loading.update_status("Starting...", 30)
 
-        loading.update_status("Setting up database...", 50)
+        # Setup database (fast)
         db_path, db_dir, uploads_dir = get_db_path()
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         os.makedirs(uploads_dir, exist_ok=True)
-        time.sleep(0.3)
-
-        loading.update_status("Loading modules...", 75)
-        time.sleep(0.3)
 
         loading.update_status("Ready!", 100)
-        time.sleep(0.5)
+        loading.root.update()
 
+        # Minimal delay for visual feedback
+        time.sleep(0.3)
         loading.close()
 
-        # Open login window
+        # Open login window directly
         from windows import LoginWindow
         root = tk.Tk()
         LoginWindow(root, db_path, db_dir, uploads_dir)
         root.mainloop()
 
     except Exception as e:
-        error_msg = f"Failed to start application:\n\n{str(e)}\n\n{traceback.format_exc()}"
+        error_msg = f"Failed to start application:\n\n{str(e)}"
         try:
             messagebox.showerror("Jesus Projekt Erfurt - Error", error_msg)
         except Exception:

@@ -1,10 +1,10 @@
 """
-Database models for desktop app
-Self-contained - no Flask dependency
+Minimal models for the desktop launcher to create the first admin user.
+The web app has its own models in webapp/app/models/
 """
 from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, DateTime, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
-from datetime import datetime, date
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 Base = declarative_base()
@@ -34,46 +34,3 @@ class User(Base):
 
     def has_role(self, role):
         return self.role == role
-
-    @property
-    def full_name(self):
-        return f"{self.first_name or ''} {self.last_name or ''}".strip() or self.username
-
-
-class Client(Base):
-    __tablename__ = 'clients'
-
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String(80), nullable=False)
-    last_name = Column(String(80), nullable=False)
-    address = Column(String(200), nullable=True)
-    phone = Column(String(30), nullable=True)
-    email = Column(String(120), nullable=True)
-    birthday = Column(Date, nullable=False)
-    privacy_signed = Column(Boolean, default=False)
-    photo_permission = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    @property
-    def age(self):
-        today = date.today()
-        return today.year - self.birthday.year - (
-            (today.month, today.day) < (self.birthday.month, self.birthday.day)
-        )
-
-
-class Settings(Base):
-    __tablename__ = 'settings'
-
-    id = Column(Integer, primary_key=True)
-    key = Column(String(50), unique=True, nullable=False)
-    value = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-def init_db(db_path):
-    """Initialize database, return engine and session"""
-    engine = create_engine(f'sqlite:///{db_path}', echo=False)
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    return engine, Session()

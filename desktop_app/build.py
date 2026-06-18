@@ -6,25 +6,45 @@ import subprocess
 
 # Get script directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 
 print("=" * 60)
 print("Jesus Projekt Erfurt - Build Script")
 print("=" * 60)
 print(f"Build directory: {SCRIPT_DIR}")
+print(f"Project directory: {PROJECT_DIR}")
 
 # Clean previous build
 for item in ['dist', 'build']:
     path = os.path.join(SCRIPT_DIR, item)
     if os.path.exists(path):
         print(f"Cleaning {path}...")
-        shutil.rmtree(path)
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            print(f"  Warning: {e}")
 
 for spec_file in ['app.spec']:
     path = os.path.join(SCRIPT_DIR, spec_file)
     if os.path.exists(path):
         os.remove(path)
 
-# Build with PyInstaller
+# Step 1: Copy web app to webapp/ folder
+print("\nCopying web app files...")
+webapp_dst = os.path.join(SCRIPT_DIR, 'webapp')
+app_src = os.path.join(PROJECT_DIR, 'app')
+
+# Remove old webapp
+if os.path.exists(webapp_dst):
+    shutil.rmtree(webapp_dst)
+os.makedirs(webapp_dst, exist_ok=True)
+
+# Copy app/ to webapp/app/
+webapp_app = os.path.join(webapp_dst, 'app')
+shutil.copytree(app_src, webapp_app)
+print(f"Copied {app_src} to {webapp_app}")
+
+# Step 2: Build with PyInstaller
 print("\nBuilding .exe with PyInstaller...")
 os.chdir(SCRIPT_DIR)
 
@@ -35,6 +55,10 @@ cmd = [
     '--name', 'Jesus Projekt Erfurt',
     '--icon', 'app.ico',
     '--add-data', 'app.ico;.',
+    '--add-data', 'webapp/app;app',
+    '--add-data', 'webapp/app/templates;app/templates',
+    '--add-data', 'webapp/app/static;app/static',
+    '--collect-all', 'webview',
     '--collect-all', 'PIL',
     '--noconfirm',
     '--clean',

@@ -343,3 +343,109 @@ def center_window(window, width, height):
     x = (screen_w - width) // 2
     y = (screen_h - height) // 2
     window.geometry(f"{width}x{height}+{x}+{y}")
+
+
+def add_hover_effect(button, bg_color, hover_color):
+    """Add hover effect to a button (like Bootstrap hover)"""
+    def on_enter(e):
+        button.config(background=hover_color)
+    def on_leave(e):
+        button.config(background=bg_color)
+    button.bind('<Enter>', on_enter)
+    button.bind('<Leave>', on_leave)
+
+
+def make_button(parent, text, bg=PRIMARY, hover_bg=PRIMARY_DARK, fg=WHITE,
+                font_size=11, bold=True, command=None, **kwargs):
+    """Create a modern button with hover effect (Bootstrap-like)"""
+    font_weight = 'bold' if bold else 'normal'
+    btn = tk.Button(parent, text=text, font=(FONT_FAMILY, font_size, font_weight),
+                    bg=bg, fg=fg, activebackground=hover_bg, activeforeground=fg,
+                    relief='flat', cursor='hand2', bd=0, command=command, **kwargs)
+    add_hover_effect(btn, bg, hover_bg)
+    return btn
+
+
+def setup_modern_style():
+    """Configure ttk styles to look like Bootstrap 5 (modern, polished)"""
+    style = ttk.Style()
+    style.theme_use('clam')
+
+    # General
+    style.configure('.', font=(FONT_FAMILY, 10), background=BG, foreground=TEXT_DARK)
+
+    # Treeview - Bootstrap-like table with rounded look
+    style.configure('Treeview',
+                    background=WHITE,
+                    foreground=TEXT_DARK,
+                    fieldbackground=WHITE,
+                    borderwidth=0,
+                    font=(FONT_FAMILY, 10),
+                    rowheight=32,
+                    relief='flat')
+    style.configure('Treeview.Heading',
+                    background='#f8f9fa',
+                    foreground=TEXT_DARK,
+                    font=(FONT_FAMILY, 10, 'bold'),
+                    relief='flat',
+                    borderwidth=1,
+                    bordercolor=BORDER,
+                    padding=(8, 10))
+    style.map('Treeview.Heading',
+              background=[('active', '#e9ecef')])
+    style.map('Treeview',
+              background=[('selected', PRIMARY)],
+              foreground=[('selected', WHITE)])
+
+    # Combobox - Bootstrap-like dropdown
+    style.configure('TCombobox',
+                    fieldbackground=WHITE,
+                    background=WHITE,
+                    foreground=TEXT_DARK,
+                    borderwidth=1,
+                    bordercolor=INPUT_BORDER,
+                    arrowcolor=PRIMARY,
+                    padding=(8, 6),
+                    relief='solid')
+    style.map('TCombobox',
+              fieldbackground=[('focus', WHITE)],
+              bordercolor=[('focus', PRIMARY)])
+
+    # Progressbar
+    style.configure('orange.Horizontal.TProgressbar',
+                    background=PRIMARY,
+                    troughcolor='#e0e0e0',
+                    bordercolor='#e0e0e0',
+                    lightcolor=PRIMARY,
+                    darkcolor=PRIMARY,
+                    thickness=8)
+
+    # Entry
+    style.configure('TEntry',
+                    fieldbackground=WHITE,
+                    background=WHITE,
+                    borderwidth=1,
+                    bordercolor=INPUT_BORDER,
+                    padding=(8, 6),
+                    relief='solid')
+    style.map('TEntry',
+              bordercolor=[('focus', PRIMARY)])
+
+    # Scrollbar
+    style.configure('Vertical.TScrollbar',
+                    background=BG,
+                    troughcolor=BG,
+                    borderwidth=0,
+                    arrowcolor=TEXT,
+                    relief='flat')
+    style.map('Vertical.TScrollbar',
+              background=[('active', BORDER)])
+
+    # Checkbutton
+    style.configure('TCheckbutton',
+                    background=WHITE,
+                    foreground=TEXT_DARK,
+                    font=(FONT_FAMILY, 10),
+                    focuscolor=WHITE)
+    style.map('TCheckbutton',
+              background=[('active', WHITE)])

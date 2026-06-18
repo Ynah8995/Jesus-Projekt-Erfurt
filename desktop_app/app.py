@@ -13,7 +13,7 @@ from PIL import Image, ImageTk
 
 from config import (PRIMARY, TEXT, WHITE, BG, FONT_FAMILY, FONT_EMOJI,
                     APP_DIR, get_db_path, get_icon_path, get_logo_image,
-                    apply_window_icon, center_window, t)
+                    apply_window_icon, center_window, t, setup_modern_style)
 
 
 class LoadingScreen:
@@ -27,6 +27,7 @@ class LoadingScreen:
         self.root.configure(bg=BG)
         self.root.overrideredirect(True)
 
+        setup_modern_style()
         apply_window_icon(self.root)
         center_window(self.root, 500, 420)
 

@@ -17,7 +17,8 @@ from models import User, Client, Settings
 from config import (PRIMARY, PRIMARY_DARK, SECONDARY, BG, TEXT, TEXT_DARK, WHITE, DARK,
                     SUCCESS, DANGER, BORDER, INPUT_BG, INPUT_BORDER,
                     FONT_FAMILY, FONT_EMOJI, LOCAL_LOGO, UPLOADS_DIR,
-                    t, apply_window_icon, center_window, get_logo_image, get_icon_path)
+                    t, apply_window_icon, center_window, get_logo_image, get_icon_path,
+                    setup_modern_style, make_button, add_hover_effect)
 
 
 # ==================== LOGIN WINDOW ====================
@@ -38,6 +39,7 @@ class LoginWindow:
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
+        setup_modern_style()
         apply_window_icon(self.root)
         center_window(self.root, 450, 620)
 
@@ -80,16 +82,22 @@ class LoginWindow:
                                       bg=WHITE, fg=TEXT_DARK, anchor='w')
         self.username_label.pack(fill='x')
 
-        username_frame = tk.Frame(inner, bg=WHITE, bd=1, relief='solid')
-        username_frame.pack(fill='x', pady=(3, 15), ipady=0)
-        self.username_icon = tk.Label(username_frame, text="👤",
+        username_frame = tk.Frame(inner, bg=INPUT_BORDER, bd=0)
+        username_frame.pack(fill='x', pady=(3, 15))
+        username_inner = tk.Frame(username_frame, bg=WHITE)
+        username_inner.pack(fill='both', expand=True, padx=1, pady=1)
+        self.username_icon = tk.Label(username_inner, text="👤",
                                       font=(FONT_FAMILY, 11),
                                       bg='#e9ecef', fg=TEXT, padx=10)
         self.username_icon.pack(side='left', fill='y')
         self.username_var = tk.StringVar()
-        self.username_entry = tk.Entry(username_frame, textvariable=self.username_var,
-                                       font=(FONT_FAMILY, 11), bd=0, bg=WHITE, relief='flat')
-        self.username_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
+        self.username_entry = tk.Entry(username_inner, textvariable=self.username_var,
+                                       font=(FONT_FAMILY, 11), bd=0, bg=WHITE, relief='flat',
+                                       insertbackground=PRIMARY)
+        self.username_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=8)
+        # Focus highlight
+        self.username_entry.bind('<FocusIn>', lambda e: username_frame.config(bg=PRIMARY))
+        self.username_entry.bind('<FocusOut>', lambda e: username_frame.config(bg=INPUT_BORDER))
 
         # Password field
         self.password_label = tk.Label(inner, text="Password",
@@ -97,25 +105,27 @@ class LoginWindow:
                                       bg=WHITE, fg=TEXT_DARK, anchor='w')
         self.password_label.pack(fill='x')
 
-        password_frame = tk.Frame(inner, bg=WHITE, bd=1, relief='solid')
-        password_frame.pack(fill='x', pady=(3, 20), ipady=0)
-        self.password_icon = tk.Label(password_frame, text="🔒",
+        password_frame = tk.Frame(inner, bg=INPUT_BORDER, bd=0)
+        password_frame.pack(fill='x', pady=(3, 20))
+        password_inner = tk.Frame(password_frame, bg=WHITE)
+        password_inner.pack(fill='both', expand=True, padx=1, pady=1)
+        self.password_icon = tk.Label(password_inner, text="🔒",
                                       font=(FONT_FAMILY, 11),
                                       bg='#e9ecef', fg=TEXT, padx=10)
         self.password_icon.pack(side='left', fill='y')
         self.password_var = tk.StringVar()
-        self.password_entry = tk.Entry(password_frame, textvariable=self.password_var,
+        self.password_entry = tk.Entry(password_inner, textvariable=self.password_var,
                                        font=(FONT_FAMILY, 11), bd=0, bg=WHITE,
-                                       show='*', relief='flat')
-        self.password_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
+                                       show='*', relief='flat', insertbackground=PRIMARY)
+        self.password_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=8)
+        # Focus highlight
+        self.password_entry.bind('<FocusIn>', lambda e: password_frame.config(bg=PRIMARY))
+        self.password_entry.bind('<FocusOut>', lambda e: password_frame.config(bg=INPUT_BORDER))
 
-        # Login button
-        self.login_btn = tk.Button(inner, text="🔑  Login",
-                                   font=(FONT_FAMILY, 11, "bold"),
-                                   bg=PRIMARY, fg=WHITE, activebackground=PRIMARY_DARK,
-                                   activeforeground=WHITE, relief='flat', cursor='hand2',
-                                   bd=0, command=self.do_login)
-        self.login_btn.pack(fill='x', pady=(0, 15), ipady=8)
+        # Login button (modern with hover effect)
+        self.login_btn = make_button(inner, "🔑  Login", bg=PRIMARY, hover_bg=PRIMARY_DARK,
+                                     command=self.do_login)
+        self.login_btn.pack(fill='x', pady=(0, 15), ipady=10)
 
         # Language switcher
         lang_frame = tk.Frame(inner, bg=WHITE)
@@ -199,6 +209,7 @@ class MainWindow:
         self.root.minsize(1000, 650)
         self.root.configure(bg=BG)
 
+        setup_modern_style()
         apply_window_icon(self.root)
         center_window(self.root, 1300, 780)
 
@@ -230,14 +241,18 @@ class MainWindow:
         # Nav items
         nav_items = tk.Frame(navbar, bg=PRIMARY)
         nav_items.pack(side='left', padx=20)
-        tk.Button(nav_items, text=f"🏠 {t('home', self.lang)}",
+        nav_home = tk.Button(nav_items, text=f"🏠 {t('home', self.lang)}",
                  font=(FONT_FAMILY, 10), bg=PRIMARY, fg=WHITE,
                  relief='flat', cursor='hand2', bd=0, activebackground=PRIMARY_DARK,
-                 command=self.show_dashboard).pack(side='left', padx=5, pady=15)
-        tk.Button(nav_items, text=f"👥 {t('clients', self.lang)}",
+                 activeforeground=WHITE, command=self.show_dashboard)
+        nav_home.pack(side='left', padx=5, pady=15)
+        add_hover_effect(nav_home, PRIMARY, PRIMARY_DARK)
+        nav_clients = tk.Button(nav_items, text=f"👥 {t('clients', self.lang)}",
                  font=(FONT_FAMILY, 10), bg=PRIMARY, fg=WHITE,
                  relief='flat', cursor='hand2', bd=0, activebackground=PRIMARY_DARK,
-                 command=self.show_clients).pack(side='left', padx=5, pady=15)
+                 activeforeground=WHITE, command=self.show_clients)
+        nav_clients.pack(side='left', padx=5, pady=15)
+        add_hover_effect(nav_clients, PRIMARY, PRIMARY_DARK)
 
         # Right side
         right_frame = tk.Frame(navbar, bg=PRIMARY)
@@ -316,11 +331,10 @@ class MainWindow:
         card_header.pack(fill='x', padx=20, pady=(15, 5))
         tk.Label(card_header, text=f"📆 {t('birthday_celebrants', self.lang)}",
                 font=(FONT_FAMILY, 14, "bold"), bg=WHITE, fg=DARK).pack(side='left')
-        self.send_btn = tk.Button(card_header, text=f"📧 {t('send_greetings', self.lang)}",
-                                  font=(FONT_FAMILY, 10, "bold"), bg=SUCCESS, fg=WHITE,
-                                  relief='flat', cursor='hand2', bd=0,
-                                  activebackground='#218838', command=self.open_send_greetings)
-        self.send_btn.pack(side='right')
+        self.send_btn = make_button(card_header, f"📧 {t('send_greetings', self.lang)}",
+                                    bg=SUCCESS, hover_bg='#218838',
+                                    command=self.open_send_greetings, font_size=10)
+        self.send_btn.pack(side='right', ipady=6, ipadx=10)
 
         select_frame = tk.Frame(main_card, bg=WHITE)
         select_frame.pack(fill='x', padx=20, pady=10)
@@ -410,10 +424,10 @@ class MainWindow:
         header.pack(fill='x', padx=25, pady=(20, 10))
         tk.Label(header, text=f"👥 {t('clients', self.lang)}",
                 font=(FONT_FAMILY, 24, "bold"), bg=BG, fg=DARK).pack(side='left')
-        tk.Button(header, text=f"➕ {t('add_client', self.lang)}",
-                 font=(FONT_FAMILY, 10, "bold"), bg=PRIMARY, fg=WHITE,
-                 relief='flat', cursor='hand2', bd=0, activebackground=PRIMARY_DARK,
-                 command=self.open_add_client).pack(side='right')
+        add_btn = make_button(header, f"➕ {t('add_client', self.lang)}",
+                              bg=PRIMARY, hover_bg=PRIMARY_DARK, font_size=10,
+                              command=self.open_add_client)
+        add_btn.pack(side='right', ipady=6, ipadx=10)
         table_card = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid',
                               highlightbackground=BORDER)
         table_card.pack(fill='both', expand=True, padx=25, pady=(0, 20))
@@ -467,10 +481,10 @@ class MainWindow:
         header.pack(fill='x', padx=25, pady=(20, 10))
         tk.Label(header, text=f"👤 {t('user_management', self.lang)}",
                 font=(FONT_FAMILY, 24, "bold"), bg=BG, fg=DARK).pack(side='left')
-        tk.Button(header, text=f"➕ {t('add_user', self.lang)}",
-                 font=(FONT_FAMILY, 10, "bold"), bg=PRIMARY, fg=WHITE,
-                 relief='flat', cursor='hand2', bd=0, activebackground=PRIMARY_DARK,
-                 command=self.open_add_user).pack(side='right')
+        add_user_btn = make_button(header, f"➕ {t('add_user', self.lang)}",
+                                   bg=PRIMARY, hover_bg=PRIMARY_DARK, font_size=10,
+                                   command=self.open_add_user)
+        add_user_btn.pack(side='right', ipady=6, ipadx=10)
         table_card = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid',
                               highlightbackground=BORDER)
         table_card.pack(fill='both', expand=True, padx=25, pady=(0, 20))

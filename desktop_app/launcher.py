@@ -15,6 +15,15 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+# Pre-load stdlib modules that PyInstaller might miss
+# These are imported inside functions in dashboard.py, so PyInstaller's
+# static analysis doesn't detect them. We import them here so they're
+# available when the web app loads.
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+
 # Get the directory where the exe is located
 if getattr(sys, 'frozen', False):
     APP_DIR = os.path.dirname(sys.executable)

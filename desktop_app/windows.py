@@ -624,12 +624,12 @@ class ClientDialog:
         self.lang = lang
         self.top = tk.Toplevel(parent)
         self.top.title(f"{t('add_client' if client is None else 'edit_client', lang)} - Jesus Projekt Erfurt")
-        self.top.geometry("580x720")
+        self.top.geometry("580x780")
         self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
         apply_window_icon(self.top)
-        center_window(self.top, 580, 720)
+        center_window(self.top, 580, 780)
         self.build_ui()
 
     def build_ui(self):
@@ -644,7 +644,7 @@ class ClientDialog:
         tk.Label(header, text=f"{icon} {t('add_client' if mode == 'add' else 'edit_client', self.lang)}",
                 font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30, pady=20)
+        form.pack(fill='x', padx=30, pady=20)
         self.first_name_var = tk.StringVar(value=self.client.first_name if self.client else '')
         self.last_name_var = tk.StringVar(value=self.client.last_name if self.client else '')
         self.address_var = tk.StringVar(value=self.client.address if self.client else '')
@@ -745,12 +745,12 @@ class UserDialog:
         self.profile_picture_path = None
         self.top = tk.Toplevel(parent)
         self.top.title(f"{t('add_user' if user is None else 'edit_user', lang)} - Jesus Projekt Erfurt")
-        self.top.geometry("580x780")
+        self.top.geometry("580x850")
         self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
         apply_window_icon(self.top)
-        center_window(self.top, 580, 780)
+        center_window(self.top, 580, 850)
         self.build_ui()
 
     def build_ui(self):
@@ -765,7 +765,7 @@ class UserDialog:
         tk.Label(header, text=f"{icon} {t('add_user' if mode == 'add' else 'edit_user', self.lang)}",
                 font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30, pady=20)
+        form.pack(fill='x', padx=30, pady=20)
         self.username_var = tk.StringVar(value=self.user.username if self.user else '')
         self.email_var = tk.StringVar(value=self.user.email if self.user else '')
         self.first_name_var = tk.StringVar(value=self.user.first_name if self.user else '')
@@ -923,12 +923,12 @@ class ProfileDialog:
         self.profile_picture_path = None
         self.top = tk.Toplevel(parent)
         self.top.title(f"{t('edit_profile', lang)} - Jesus Projekt Erfurt")
-        self.top.geometry("580x700")
+        self.top.geometry("580x750")
         self.top.configure(bg=BG)
         self.top.transient(parent)
         self.top.grab_set()
         apply_window_icon(self.top)
-        center_window(self.top, 580, 700)
+        center_window(self.top, 580, 750)
         self.build_ui()
 
     def build_ui(self):
@@ -940,7 +940,7 @@ class ProfileDialog:
         header.pack(fill='x', padx=30, pady=(20, 0))
         tk.Label(header, text=f"👤 {t('edit_profile', self.lang)}", font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='both', expand=True, padx=30, pady=20)
+        form.pack(fill='x', padx=30, pady=20)
         self.username_var = tk.StringVar(value=self.user.username)
         self.email_var = tk.StringVar(value=self.user.email)
         self.first_name_var = tk.StringVar(value=self.user.first_name or '')

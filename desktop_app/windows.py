@@ -702,8 +702,24 @@ class ClientDialog:
         icon = '➕' if mode == 'add' else '✏️'
         tk.Label(header, text=f"{icon} {t('add_client' if mode == 'add' else 'edit_client', self.lang)}",
                 font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
+
+        # Button frame at the bottom - packed first with side='bottom' so it stays visible
+        btn_frame = tk.Frame(card, bg=WHITE, bd=0, highlightthickness=0)
+        btn_frame.pack(fill='x', padx=30, pady=(0, 20), side='bottom')
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
+        if self.client and self.current_user and self.current_user.has_role('admin'):
+            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
+                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     activebackground='#c82333', command=self.delete_client).pack(side='left', padx=5, ipady=8, ipadx=10)
+        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
+
+        # Form fills remaining space
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='x', padx=30, pady=20)
+        form.pack(fill='both', expand=True, padx=30, pady=20)
         self.first_name_var = tk.StringVar(value=self.client.first_name if self.client else '')
         self.last_name_var = tk.StringVar(value=self.client.last_name if self.client else '')
         self.address_var = tk.StringVar(value=self.client.address if self.client else '')
@@ -730,18 +746,6 @@ class ClientDialog:
         switch_frame.pack(fill='x', pady=10)
         tk.Checkbutton(switch_frame, text=f"  {t('privacy_signed', self.lang)}", variable=self.privacy_var, bg=WHITE, font=(FONT_FAMILY, 10), activebackground=WHITE).pack(anchor='w', pady=2)
         tk.Checkbutton(switch_frame, text=f"  {t('photo_permission', self.lang)}", variable=self.photo_var, bg=WHITE, font=(FONT_FAMILY, 10), activebackground=WHITE).pack(anchor='w', pady=2)
-        btn_frame = tk.Frame(card, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=(0, 20))
-        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        if self.client and self.current_user and self.current_user.has_role('admin'):
-            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
-                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                     activebackground='#c82333', command=self.delete_client).pack(side='left', padx=5, ipady=8, ipadx=10)
-        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def delete_client(self):
         if not self.client:
@@ -823,8 +827,24 @@ class UserDialog:
         icon = '➕' if mode == 'add' else '✏️'
         tk.Label(header, text=f"{icon} {t('add_user' if mode == 'add' else 'edit_user', self.lang)}",
                 font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
+
+        # Button frame at the bottom - packed first with side='bottom' so it stays visible
+        btn_frame = tk.Frame(card, bg=WHITE, bd=0, highlightthickness=0)
+        btn_frame.pack(fill='x', padx=30, pady=(0, 20), side='bottom')
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
+        if self.user and self.current_user and self.user.id != self.current_user.id:
+            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
+                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                     activebackground='#c82333', command=self.delete_user).pack(side='left', padx=5, ipady=8, ipadx=10)
+        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
+
+        # Form fills remaining space
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='x', padx=30, pady=20)
+        form.pack(fill='both', expand=True, padx=30, pady=20)
         self.username_var = tk.StringVar(value=self.user.username if self.user else '')
         self.email_var = tk.StringVar(value=self.user.email if self.user else '')
         self.first_name_var = tk.StringVar(value=self.user.first_name if self.user else '')
@@ -850,28 +870,16 @@ class UserDialog:
                          state='readonly', font=(FONT_FAMILY, 11)).pack(fill='x', pady=(2, 5), ipady=4)
             self.active_var = tk.BooleanVar(value=self.user.is_active if self.user else True)
             tk.Checkbutton(form, text=f"  {t('active', self.lang)}", variable=self.active_var, bg=WHITE, font=(FONT_FAMILY, 10), activebackground=WHITE).pack(anchor='w', pady=5)
-        # Profile picture
+        # Profile picture - OPTIONAL
         pic_frame = tk.Frame(form, bg=WHITE)
-        pic_frame.pack(fill='x', pady=15)
-        self.pic_label = tk.Label(pic_frame, text="👤", font=(FONT_EMOJI, 30), bg='#e9ecef', width=6, height=3)
+        pic_frame.pack(fill='x', pady=10)
+        self.pic_label = tk.Label(pic_frame, text="👤", font=(FONT_EMOJI, 24), bg='#e9ecef', width=5, height=2)
         self.pic_label.pack(side='left', padx=(0, 15))
-        tk.Button(pic_frame, text=f"📁 {t('profile_picture', self.lang)}", font=(FONT_FAMILY, 10),
+        tk.Button(pic_frame, text=f"📁 {t('profile_picture', self.lang)} (optional)", font=(FONT_FAMILY, 10),
                  bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground='#5a6268', command=self.upload_photo).pack(side='left', pady=20, ipadx=10, ipady=5)
+                 activebackground='#5a6268', command=self.upload_photo).pack(side='left', pady=10, ipadx=10, ipady=5)
         if self.user and self.user.profile_picture:
             self.load_user_picture()
-        btn_frame = tk.Frame(card, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=(0, 20))
-        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        if self.user and self.current_user and self.user.id != self.current_user.id:
-            tk.Button(btn_frame, text=f"🗑️ {t('delete', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
-                     bg=DANGER, fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                     activebackground='#c82333', command=self.delete_user).pack(side='left', padx=5, ipady=8, ipadx=10)
-        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def upload_photo(self):
         filename = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.gif")])
@@ -998,8 +1006,20 @@ class ProfileDialog:
         header = tk.Frame(card, bg=WHITE)
         header.pack(fill='x', padx=30, pady=(20, 0))
         tk.Label(header, text=f"👤 {t('edit_profile', self.lang)}", font=(FONT_FAMILY, 18, "bold"), bg=WHITE, fg=PRIMARY).pack(anchor='w')
+
+        # Button frame at the bottom - packed first with side='bottom' so it stays visible
+        btn_frame = tk.Frame(card, bg=WHITE, bd=0, highlightthickness=0)
+        btn_frame.pack(fill='x', padx=30, pady=(0, 20), side='bottom')
+        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
+                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
+        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
+                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
+                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
+
+        # Form fills remaining space
         form = tk.Frame(card, bg=WHITE)
-        form.pack(fill='x', padx=30, pady=20)
+        form.pack(fill='both', expand=True, padx=30, pady=20)
         self.username_var = tk.StringVar(value=self.user.username)
         self.email_var = tk.StringVar(value=self.user.email)
         self.first_name_var = tk.StringVar(value=self.user.first_name or '')
@@ -1015,23 +1035,15 @@ class ProfileDialog:
         self.password_entry.pack(fill='x', pady=(2, 2), ipady=4)
         tk.Label(form, text=t('leave_blank_no_change', self.lang), font=(FONT_FAMILY, 8), bg=WHITE, fg=TEXT).pack(anchor='w', pady=(0, 5))
         pic_frame = tk.Frame(form, bg=WHITE)
-        pic_frame.pack(fill='x', pady=15)
-        self.pic_label = tk.Label(pic_frame, text="👤", font=(FONT_EMOJI, 30), bg='#e9ecef', width=6, height=3)
+        pic_frame.pack(fill='x', pady=10)
+        self.pic_label = tk.Label(pic_frame, text="👤", font=(FONT_EMOJI, 24), bg='#e9ecef', width=5, height=2)
         self.pic_label.pack(side='left', padx=(0, 15))
         btn_text = f"🔄 Change" if self.user.profile_picture else f"📁 Upload"
-        tk.Button(pic_frame, text=f"{btn_text} {t('profile_picture', self.lang)}", font=(FONT_FAMILY, 10),
+        tk.Button(pic_frame, text=f"{btn_text} {t('profile_picture', self.lang)} (optional)", font=(FONT_FAMILY, 10),
                  bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground='#5a6268', command=self.upload_photo).pack(side='left', pady=20, ipadx=10, ipady=5)
+                 activebackground='#5a6268', command=self.upload_photo).pack(side='left', pady=10, ipadx=10, ipady=5)
         if self.user.profile_picture:
             self.load_user_picture()
-        btn_frame = tk.Frame(card, bg=WHITE)
-        btn_frame.pack(fill='x', padx=30, pady=(0, 20))
-        tk.Button(btn_frame, text=f"💾 {t('save', self.lang)}", font=(FONT_FAMILY, 11, "bold"),
-                 bg=PRIMARY, fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground=PRIMARY_DARK, command=self.save).pack(side='left', fill='x', expand=True, padx=(0, 5), ipady=8)
-        tk.Button(btn_frame, text=t('cancel', self.lang), font=(FONT_FAMILY, 11),
-                 bg='#6c757d', fg=WHITE, relief='flat', cursor='hand2', bd=0,
-                 activebackground='#5a6268', command=self.top.destroy).pack(side='right', fill='x', expand=True, padx=(5, 0), ipady=8)
 
     def upload_photo(self):
         filename = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.gif")])

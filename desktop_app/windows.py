@@ -21,6 +21,47 @@ from config import (PRIMARY, PRIMARY_DARK, SECONDARY, BG, TEXT, TEXT_DARK, WHITE
                     setup_modern_style, make_button, add_hover_effect)
 
 
+def get_preferences_path():
+    """Get the path for storing user preferences"""
+    from config import APP_DIR
+    pref_path = os.path.join(APP_DIR, 'preferences.json')
+    try:
+        test_path = pref_path
+        with open(test_path, 'w') as f:
+            f.write('test')
+        os.remove(test_path)
+        return pref_path
+    except (OSError, PermissionError):
+        from config import APPDATA_DIR
+        os.makedirs(APPDATA_DIR, exist_ok=True)
+        return os.path.join(APPDATA_DIR, 'preferences.json')
+
+
+def load_preferences():
+    """Load user preferences (language, last username)"""
+    pref_path = get_preferences_path()
+    try:
+        if os.path.exists(pref_path):
+            import json
+            with open(pref_path, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def save_preferences(prefs):
+    """Save user preferences"""
+    pref_path = get_preferences_path()
+    try:
+        import json
+        os.makedirs(os.path.dirname(pref_path), exist_ok=True)
+        with open(pref_path, 'w') as f:
+            json.dump(prefs, f)
+    except Exception:
+        pass
+
+
 # ==================== LOGIN WINDOW ====================
 
 class LoginWindow:
@@ -32,7 +73,11 @@ class LoginWindow:
         self.db_dir = db_dir
         self.uploads_dir = uploads_dir
         self.engine, self.session = init_db_safe(db_path)
-        self.lang = 'en'
+
+        # Load saved language preference
+        prefs = load_preferences()
+        self.lang = prefs.get('language', 'en')
+        self.last_username = prefs.get('last_username', '')
 
         self.root.title("Login - Jesus Projekt Erfurt")
         self.root.geometry("450x620")
@@ -90,7 +135,7 @@ class LoginWindow:
                                       font=(FONT_FAMILY, 11),
                                       bg='#e9ecef', fg=TEXT, padx=10)
         self.username_icon.pack(side='left', fill='y')
-        self.username_var = tk.StringVar()
+        self.username_var = tk.StringVar(value=self.last_username)
         self.username_entry = tk.Entry(username_inner, textvariable=self.username_var,
                                        font=(FONT_FAMILY, 11), bd=0, bg=WHITE, relief='flat',
                                        insertbackground=PRIMARY)
@@ -150,8 +195,15 @@ class LoginWindow:
         self.root.bind('<Return>', lambda e: self.do_login())
         self.username_entry.focus()
 
+        # Apply the loaded language to all UI text
+        self.update_texts()
+
     def set_lang(self, lang):
         self.lang = lang
+        # Save the language preference immediately
+        prefs = load_preferences()
+        prefs['language'] = lang
+        save_preferences(prefs)
         self.update_texts()
 
     def update_texts(self):
@@ -177,7 +229,14 @@ class LoginWindow:
                 self.status_label.config(text=t('account_deactivated', self.lang))
                 return
             user.last_login = datetime.utcnow()
+            # Apply the selected language to the user
+            user.language = self.lang
             self.session.commit()
+            # Save preferences (username and language)
+            prefs = load_preferences()
+            prefs['last_username'] = username
+            prefs['language'] = self.lang
+            save_preferences(prefs)
             self.root.destroy()
             main_root = tk.Tk()
             MainWindow(main_root, self.db_path, self.db_dir, self.uploads_dir, user)

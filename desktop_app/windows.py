@@ -495,12 +495,46 @@ class MainWindow:
         table_card = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid',
                               highlightbackground=BORDER)
         table_card.pack(fill='both', expand=True, padx=25, pady=(0, 20))
+
+        # Search bar
+        search_frame = tk.Frame(table_card, bg=WHITE)
+        search_frame.pack(fill='x', padx=20, pady=(15, 10))
+        tk.Label(search_frame, text=f"🔍 {t('search', self.lang)}:",
+                font=(FONT_FAMILY, 11), bg=WHITE, fg=TEXT_DARK).pack(side='left', padx=(0, 10))
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add('write', lambda *args: self.load_clients())
+        search_entry_frame = tk.Frame(search_frame, bg=INPUT_BORDER, bd=0)
+        search_entry_frame.pack(side='left', fill='x', expand=True, ipady=0)
+        search_entry_inner = tk.Frame(search_entry_frame, bg=WHITE)
+        search_entry_inner.pack(fill='both', expand=True, padx=1, pady=1)
+        self.search_icon = tk.Label(search_entry_inner, text="🔍",
+                                    font=(FONT_FAMILY, 11), bg='#e9ecef', fg=TEXT, padx=10)
+        self.search_icon.pack(side='left', fill='y')
+        self.search_entry = tk.Entry(search_entry_inner, textvariable=self.search_var,
+                                      font=(FONT_FAMILY, 11), bd=0, bg=WHITE, relief='flat',
+                                      insertbackground=PRIMARY)
+        self.search_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
+        # Focus highlight
+        self.search_entry.bind('<FocusIn>', lambda e: search_entry_frame.config(bg=PRIMARY))
+        self.search_entry.bind('<FocusOut>', lambda e: search_entry_frame.config(bg=INPUT_BORDER))
+        # Clear button
+        clear_btn = tk.Button(search_frame, text="✕",
+                              font=(FONT_FAMILY, 10), bg='#6c757d', fg=WHITE,
+                              relief='flat', cursor='hand2', bd=0,
+                              activebackground='#5a6268', command=self.clear_search)
+        clear_btn.pack(side='right', padx=(5, 0), ipady=4, ipadx=8)
+        # Result count label
+        self.result_count_label = tk.Label(search_frame, text="",
+                                          font=(FONT_FAMILY, 9), bg=WHITE, fg=TEXT)
+        self.result_count_label.pack(side='right', padx=(0, 10))
+
+        # Table
         table_frame = tk.Frame(table_card, bg=WHITE)
-        table_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
         columns = (t('first_name', self.lang), t('last_name', self.lang),
                   t('birthday', self.lang), t('age', self.lang),
                   t('phone', self.lang), t('email', self.lang), t('actions', self.lang))
-        self.client_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=18)
+        self.client_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=17)
         widths = [120, 120, 100, 60, 120, 180, 100]
         for col, w in zip(columns, widths):
             self.client_tree.heading(col, text=col)
@@ -512,16 +546,46 @@ class MainWindow:
         self.client_tree.bind('<Double-1>', self.edit_client_event)
         self.load_clients()
 
+    def clear_search(self):
+        """Clear the search field"""
+        self.search_var.set('')
+
     def load_clients(self):
         if hasattr(self, 'client_tree'):
             for item in self.client_tree.get_children():
                 self.client_tree.delete(item)
+            # Get all clients
             clients = self.session.query(Client).order_by(Client.last_name).all()
-            for c in clients:
-                actions = "✏️  🗑️" if self.current_user.has_role('admin') else "✏️"
-                self.client_tree.insert('', 'end', iid=c.id, values=(
-                    c.first_name, c.last_name, c.birthday.strftime('%d.%m.%Y'),
-                    c.age, c.phone or '-', c.email or '-', actions))
+            # Filter by search text
+            search_text = ''
+            if hasattr(self, 'search_var'):
+                search_text = self.search_var.get().lower().strip()
+            if search_text:
+                filtered = []
+                for c in clients:
+                    searchable = f"{c.first_name} {c.last_name} {c.phone or ''} {c.email or ''} {c.address or ''}".lower()
+                    if search_text in searchable:
+                        filtered.append(c)
+                clients = filtered
+            # Populate tree
+            if not clients and search_text:
+                # Show "no results" message
+                self.client_tree.insert('', 'end', values=(t('no_results', self.lang), '', '', '', '', '', ''))
+            else:
+                for c in clients:
+                    actions = "✏️  🗑️" if self.current_user.has_role('admin') else "✏️"
+                    self.client_tree.insert('', 'end', iid=c.id, values=(
+                        c.first_name, c.last_name, c.birthday.strftime('%d.%m.%Y'),
+                        c.age, c.phone or '-', c.email or '-', actions))
+            # Update result count
+            if hasattr(self, 'result_count_label'):
+                if search_text:
+                    self.result_count_label.config(
+                        text=f"{len(clients)} {t('results_found', self.lang)}")
+                else:
+                    total = self.session.query(Client).count()
+                    self.result_count_label.config(
+                        text=f"{t('total', self.lang)}: {total}")
 
     def edit_client_event(self, event):
         item = self.client_tree.selection()
@@ -552,12 +616,43 @@ class MainWindow:
         table_card = tk.Frame(self.content, bg=WHITE, bd=1, relief='solid',
                               highlightbackground=BORDER)
         table_card.pack(fill='both', expand=True, padx=25, pady=(0, 20))
+
+        # Search bar
+        search_frame = tk.Frame(table_card, bg=WHITE)
+        search_frame.pack(fill='x', padx=20, pady=(15, 10))
+        tk.Label(search_frame, text=f"🔍 {t('search', self.lang)}:",
+                font=(FONT_FAMILY, 11), bg=WHITE, fg=TEXT_DARK).pack(side='left', padx=(0, 10))
+        self.user_search_var = tk.StringVar()
+        self.user_search_var.trace_add('write', lambda *args: self.load_users())
+        search_entry_frame = tk.Frame(search_frame, bg=INPUT_BORDER, bd=0)
+        search_entry_frame.pack(side='left', fill='x', expand=True, ipady=0)
+        search_entry_inner = tk.Frame(search_entry_frame, bg=WHITE)
+        search_entry_inner.pack(fill='both', expand=True, padx=1, pady=1)
+        self.user_search_icon = tk.Label(search_entry_inner, text="🔍",
+                                         font=(FONT_FAMILY, 11), bg='#e9ecef', fg=TEXT, padx=10)
+        self.user_search_icon.pack(side='left', fill='y')
+        self.user_search_entry = tk.Entry(search_entry_inner, textvariable=self.user_search_var,
+                                         font=(FONT_FAMILY, 11), bd=0, bg=WHITE, relief='flat',
+                                         insertbackground=PRIMARY)
+        self.user_search_entry.pack(side='left', fill='both', expand=True, padx=8, ipady=6)
+        self.user_search_entry.bind('<FocusIn>', lambda e: search_entry_frame.config(bg=PRIMARY))
+        self.user_search_entry.bind('<FocusOut>', lambda e: search_entry_frame.config(bg=INPUT_BORDER))
+        clear_btn = tk.Button(search_frame, text="✕",
+                              font=(FONT_FAMILY, 10), bg='#6c757d', fg=WHITE,
+                              relief='flat', cursor='hand2', bd=0,
+                              activebackground='#5a6268', command=self.clear_user_search)
+        clear_btn.pack(side='right', padx=(5, 0), ipady=4, ipadx=8)
+        self.user_result_count_label = tk.Label(search_frame, text="",
+                                               font=(FONT_FAMILY, 9), bg=WHITE, fg=TEXT)
+        self.user_result_count_label.pack(side='right', padx=(0, 10))
+
+        # Table
         table_frame = tk.Frame(table_card, bg=WHITE)
-        table_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
         columns = (t('username', self.lang), t('email', self.lang),
                   t('first_name', self.lang), t('last_name', self.lang),
                   t('role', self.lang), t('status', self.lang), t('last_login', self.lang), t('actions', self.lang))
-        self.user_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=18)
+        self.user_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=17)
         widths = [100, 150, 100, 100, 80, 80, 130, 80]
         for col, w in zip(columns, widths):
             self.user_tree.heading(col, text=col)
@@ -569,18 +664,46 @@ class MainWindow:
         self.user_tree.bind('<Double-1>', self.edit_user_event)
         self.load_users()
 
+    def clear_user_search(self):
+        """Clear the user search field"""
+        self.user_search_var.set('')
+
     def load_users(self):
         if hasattr(self, 'user_tree'):
             for item in self.user_tree.get_children():
                 self.user_tree.delete(item)
             users = self.session.query(User).order_by(User.username).all()
-            for u in users:
-                actions = "✏️  🗑️" if u.id != self.current_user.id else "✏️"
-                self.user_tree.insert('', 'end', iid=u.id, values=(
-                    u.username, u.email, u.first_name or '-', u.last_name or '-',
-                    t(u.role, self.lang),
-                    t('active', self.lang) if u.is_active else t('inactive', self.lang),
-                    u.last_login.strftime('%d.%m.%Y %H:%M') if u.last_login else '-', actions))
+            # Filter by search
+            search_text = ''
+            if hasattr(self, 'user_search_var'):
+                search_text = self.user_search_var.get().lower().strip()
+            if search_text:
+                filtered = []
+                for u in users:
+                    searchable = f"{u.username} {u.email} {u.first_name or ''} {u.last_name or ''}".lower()
+                    if search_text in searchable:
+                        filtered.append(u)
+                users = filtered
+            # Populate tree
+            if not users and search_text:
+                self.user_tree.insert('', 'end', values=(t('no_results', self.lang), '', '', '', '', '', '', ''))
+            else:
+                for u in users:
+                    actions = "✏️  🗑️" if u.id != self.current_user.id else "✏️"
+                    self.user_tree.insert('', 'end', iid=u.id, values=(
+                        u.username, u.email, u.first_name or '-', u.last_name or '-',
+                        t(u.role, self.lang),
+                        t('active', self.lang) if u.is_active else t('inactive', self.lang),
+                        u.last_login.strftime('%d.%m.%Y %H:%M') if u.last_login else '-', actions))
+            # Update result count
+            if hasattr(self, 'user_result_count_label'):
+                if search_text:
+                    self.user_result_count_label.config(
+                        text=f"{len(users)} {t('results_found', self.lang)}")
+                else:
+                    total = self.session.query(User).count()
+                    self.user_result_count_label.config(
+                        text=f"{t('total', self.lang)}: {total}")
 
     def edit_user_event(self, event):
         item = self.user_tree.selection()

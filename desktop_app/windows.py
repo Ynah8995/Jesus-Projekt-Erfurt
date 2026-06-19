@@ -19,6 +19,7 @@ from config import (PRIMARY, PRIMARY_DARK, SECONDARY, BG, TEXT, TEXT_DARK, WHITE
                     FONT_FAMILY, FONT_EMOJI, LOCAL_LOGO, UPLOADS_DIR,
                     t, apply_window_icon, center_window, get_logo_image, get_icon_path,
                     setup_modern_style, make_button, add_hover_effect)
+from version import __version__
 
 
 def get_preferences_path():
@@ -191,6 +192,10 @@ class LoginWindow:
         self.status_label = tk.Label(inner, text="", font=(FONT_FAMILY, 9),
                                      bg=WHITE, fg=DANGER)
         self.status_label.pack(pady=(10, 0))
+
+        # Version label
+        tk.Label(inner, text=f"v{__version__}", font=(FONT_FAMILY, 8),
+                bg=WHITE, fg=TEXT).pack(pady=(5, 0))
 
         self.root.bind('<Return>', lambda e: self.do_login())
         self.username_entry.focus()

@@ -41,12 +41,21 @@ cmd = [
     '--noconfirm', '--clean',
     'launcher.py'
 ]
-
 print("Command:", ' '.join(cmd))
 result = subprocess.run(cmd)
 if result.returncode != 0:
     print("Build failed!")
     sys.exit(1)
+
+# Copy update.bat and README to dist folder
+import shutil
+dist_dir = os.path.join(SCRIPT_DIR, 'dist')
+for extra_file in ['update.bat', 'README.md']:
+    src = os.path.join(SCRIPT_DIR, extra_file)
+    dst = os.path.join(dist_dir, extra_file)
+    if os.path.exists(src):
+        shutil.copy2(src, dst)
+        print(f"Copied {extra_file} to dist/")
 
 exe_path = os.path.join(SCRIPT_DIR, 'dist', 'Jesus Projekt Erfurt.exe')
 if os.path.exists(exe_path):

@@ -12,6 +12,7 @@ from PIL import Image, ImageTk
 from config import (PRIMARY, TEXT, WHITE, BG, FONT_FAMILY, FONT_EMOJI,
                     APP_DIR, get_db_path, get_icon_path, get_logo_image,
                     apply_window_icon, center_window, t, setup_modern_style)
+from version import __version__
 
 
 class LoadingScreen:
@@ -48,7 +49,11 @@ class LoadingScreen:
         tk.Label(card, text="Jesus Projekt Erfurt", font=(FONT_FAMILY, 20, "bold"),
                 bg=WHITE, fg=PRIMARY).pack()
         tk.Label(card, text="Birthday Monitoring", font=(FONT_FAMILY, 12),
-                bg=WHITE, fg=TEXT).pack(pady=(0, 25))
+                bg=WHITE, fg=TEXT).pack(pady=(0, 15))
+
+        # Version label
+        tk.Label(card, text=f"v{__version__}", font=(FONT_FAMILY, 8),
+                bg=WHITE, fg=TEXT).pack(pady=(0, 10))
 
         self.status_label = tk.Label(card, text="Starting...", font=(FONT_FAMILY, 10),
                                      bg=WHITE, fg=TEXT)
